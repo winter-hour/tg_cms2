@@ -30,8 +30,7 @@ import {
   Description as DescriptionIcon,
   Group as GroupIcon,
   Settings as SettingsIcon,
-  KeyboardArrowRight as KeyboardArrowRightIcon,
-  KeyboardArrowLeft as KeyboardArrowLeftIcon,
+  Menu as MenuIcon,
 } from '@mui/icons-material';
 
 function App() {
@@ -88,11 +87,6 @@ function App() {
   const [editPropertyValueText, setEditPropertyValueText] = useState('');
 
   const editButtonRef = useRef(null);
-
-  // Константы для цветов
-  const ICON_COLOR_INACTIVE = '#8e8e8e'; // Цвет иконок в неактивном состоянии
-  const ICON_COLOR_ACTIVE = '#3b3b3b';   // Цвет иконок в активном состоянии
-  const ICON_COLOR_HOVER = '#1a1a1a';    // Цвет иконок при наведении
 
   useEffect(() => {
     fetchPosts();
@@ -503,17 +497,19 @@ function App() {
     { id: 'properties', label: 'Свойства', icon: <SettingsIcon /> },
   ];
 
-  // Фиксированные размеры боковой панели
-  const SIDEBAR_CLOSED_WIDTH = 56; // Ширина в закрытом состоянии (стандарт для иконок Material UI)
-  const SIDEBAR_OPEN_WIDTH = 130; // Ширина в раскрытом состоянии
-  const SIDEBAR_MARGIN = 10; // Минимальный отступ слева для содержимого
-
   return (
     <Box sx={{ display: 'flex', height: '100vh', width: '100vw', margin: 0, padding: 0, overflow: 'hidden' }}>
-      {/* Боковая панель (фиксированная) */}
+      {/* Кнопка для раскрытия/сворачивания */}
+      <Box sx={{ position: 'absolute', top: 0, left: 0, zIndex: 1000 }}>
+        <IconButton onClick={() => setIsSidebarOpen(!isSidebarOpen)} size="small">
+          <MenuIcon />
+        </IconButton>
+      </Box>
+
+      {/* Боковая панель */}
       <Box
         sx={{
-          width: isSidebarOpen ? SIDEBAR_OPEN_WIDTH : SIDEBAR_CLOSED_WIDTH,
+          width: isSidebarOpen ? 200 : 56, // Ширина 56px для иконок, 200px для текста
           bgcolor: '#f5f5f5',
           borderRight: '1px solid #ddd',
           height: '100%',
@@ -521,15 +517,8 @@ function App() {
           transition: 'width 0.3s', // Плавное переключение ширины
           ml: 0,
           p: 0,
-          mt: 0,
-          position: 'fixed', // Фиксируем панель
-          zIndex: 1000, // Убеждаемся, что панель поверх содержимого
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'space-between', // Для размещения кнопки внизу
         }}
       >
-        {/* Меню */}
         <List>
           {tabs.map((tab) => (
             <ListItem
@@ -537,80 +526,26 @@ function App() {
               button
               onClick={() => setSelectedTab(tab.id)}
               sx={{
-                p: 1,
-                minHeight: 48,
-                justifyContent: isSidebarOpen ? 'initial' : 'center',
+                bgcolor: selectedTab === tab.id ? '#e0e0e0' : 'transparent',
                 '&:hover': {
-                  bgcolor: 'transparent', // Убираем изменение фона
-                  '& .MuiListItemIcon-root, & .MuiListItemText-primary': {
-                    color: ICON_COLOR_HOVER, // Единое изменение цвета для иконки и текста
-                  },
+                  bgcolor: '#e0e0e0',
                 },
+                p: 1,
+                minHeight: 48, // Минимальная высота для иконок
+                justifyContent: isSidebarOpen ? 'initial' : 'center', // Центрирование иконок при свёрнутом состоянии
               }}
             >
-              <ListItemIcon
-                sx={{
-                  minWidth: 0,
-                  mr: isSidebarOpen ? 1 : 0,
-                  color: selectedTab === tab.id ? ICON_COLOR_ACTIVE : ICON_COLOR_INACTIVE, // Цвет иконок
-                }}
-              >
+              <ListItemIcon sx={{ minWidth: 0, mr: isSidebarOpen ? 1 : 0 }}>
                 {tab.icon}
               </ListItemIcon>
-              {isSidebarOpen && (
-                <ListItemText
-                  primary={tab.label}
-                  sx={{
-                    color: selectedTab === tab.id ? ICON_COLOR_ACTIVE : ICON_COLOR_INACTIVE, // Цвет текста
-                  }}
-                />
-              )}
+              {isSidebarOpen && <ListItemText primary={tab.label} />}
             </ListItem>
           ))}
         </List>
-
-        {/* Кнопка для раскрытия/сворачивания внизу */}
-        <Box sx={{ p: 1 }}>
-          <ListItem
-            button
-            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-            sx={{
-              p: 1,
-              minHeight: 48,
-              justifyContent: isSidebarOpen ? 'initial' : 'center',
-              '&:hover': {
-                bgcolor: 'transparent', // Убираем изменение фона
-                '& .MuiListItemIcon-root': {
-                  color: ICON_COLOR_HOVER, // Изменение цвета иконки при наведении
-                },
-              },
-            }}
-            disableRipple // Убираем эффект "ripple"
-          >
-            <ListItemIcon
-              sx={{
-                minWidth: 0,
-                mr: isSidebarOpen ? 1 : 0,
-                color: ICON_COLOR_INACTIVE, // Базовый цвет иконки
-              }}
-            >
-              {isSidebarOpen ? <KeyboardArrowLeftIcon /> : <KeyboardArrowRightIcon />}
-            </ListItemIcon>
-          </ListItem>
-        </Box>
       </Box>
 
-      {/* Основная область с фиксированным отступом */}
-      <Box
-        sx={{
-          flexGrow: 1,
-          p: 3,
-          overflow: 'auto',
-          ml: SIDEBAR_MARGIN, // Фиксированный минимальный отступ слева
-          transition: 'margin-left 0.3s', // Плавное смещение при раскрытии
-          marginLeft: isSidebarOpen ? `${SIDEBAR_OPEN_WIDTH + SIDEBAR_MARGIN}px` : `${SIDEBAR_CLOSED_WIDTH + SIDEBAR_MARGIN}px`, // Динамическое смещение
-        }}
-      >
+      {/* Основная область */}
+      <Box sx={{ flexGrow: 1, p: 3, overflow: 'auto' }}>
         {/* Вкладка Посты */}
         {selectedTab === 'posts' && (
           <div>
