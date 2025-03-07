@@ -540,6 +540,7 @@ function App() {
                 p: 1,
                 minHeight: 48,
                 justifyContent: isSidebarOpen ? 'initial' : 'center',
+                cursor: 'pointer', // Курсор в виде руки для всего элемента
                 '&:hover': {
                   bgcolor: 'transparent', // Убираем изменение фона
                   '& .MuiListItemIcon-root, & .MuiListItemText-primary': {
@@ -578,6 +579,7 @@ function App() {
               p: 1,
               minHeight: 48,
               justifyContent: isSidebarOpen ? 'initial' : 'center',
+              cursor: 'pointer', // Курсор в виде руки для нижней иконки
               '&:hover': {
                 bgcolor: 'transparent', // Убираем изменение фона
                 '& .MuiListItemIcon-root': {
