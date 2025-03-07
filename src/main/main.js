@@ -1,7 +1,7 @@
 import { app, BrowserWindow, ipcMain, dialog } from 'electron';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { db, addPost, getPosts, updatePost, deletePost, addAttachedFile, getAttachedFiles } from '../db/database.js';
+import { db, addPost, getPosts, updatePost, deletePost, addAttachedFile, getAttachedFiles, addTemplate, getTemplates, updateTemplate, deleteTemplate, addPostTemplate, getPostTemplates, removePostTemplate } from '../db/database.js';
 import fs from 'fs';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -23,9 +23,9 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
-  ipcMain.handle('add-post', async (event, post) => {
+  ipcMain.handle('add-post', async (event, groupId, channelId, userId, title, text, isPublished, publishedAt) => {
     return new Promise((resolve, reject) => {
-      addPost(post.text, post.media, post.status, post.scheduledAt, (err, id) => {
+      addPost(groupId, channelId, userId, title, text, isPublished, publishedAt, (err, id) => {
         if (err) {
           reject(err);
         } else {
@@ -47,10 +47,10 @@ app.whenReady().then(() => {
     });
   });
 
-  ipcMain.handle('update-post', async (event, id, { text, media, status, scheduledAt }) => {
-    console.log('Обновление поста - id:', id, 'данные:', { text, media, status, scheduledAt });
+  ipcMain.handle('update-post', async (event, id, groupId, channelId, userId, title, text, isPublished, publishedAt) => {
+    console.log('Обновление поста - id:', id, 'данные:', { groupId, channelId, userId, title, text, isPublished, publishedAt });
     return new Promise((resolve, reject) => {
-      updatePost(id, text, media, status, scheduledAt, (err) => {
+      updatePost(id, groupId, channelId, userId, title, text, isPublished, publishedAt, (err) => {
         if (err) {
           console.error('Ошибка обновления поста:', err.message);
           reject(err);
@@ -65,7 +65,6 @@ app.whenReady().then(() => {
   ipcMain.handle('delete-post', async (event, id) => {
     console.log('Начало удаления поста с id:', id);
     return new Promise((resolve, reject) => {
-      // Получаем все прикреплённые файлы для поста
       getAttachedFiles(id, (err, files) => {
         if (err) {
           console.error('Ошибка получения прикреплённых файлов:', err.message);
@@ -74,7 +73,6 @@ app.whenReady().then(() => {
         }
         if (files && files.length > 0) {
           console.log('Найдены файлы для удаления:', files);
-          // Удаляем файлы из папки uploads
           files.forEach(file => {
             const filePath = file.file_path;
             fs.unlink(filePath, (err) => {
@@ -85,7 +83,6 @@ app.whenReady().then(() => {
               }
             });
           });
-          // Удаляем записи из таблицы Attached_Files
           db.run('DELETE FROM Attached_Files WHERE post_id = ?', id, (err) => {
             if (err) {
               console.error('Ошибка удаления записей из Attached_Files:', err.message);
@@ -93,7 +90,6 @@ app.whenReady().then(() => {
               return;
             }
             console.log('Записи из Attached_Files удалены для поста id:', id);
-            // Удаляем сам пост
             deletePost(id, (err) => {
               if (err) {
                 console.error('Ошибка удаления поста:', err.message);
@@ -105,7 +101,6 @@ app.whenReady().then(() => {
             });
           });
         } else {
-          // Если нет прикреплённых файлов, просто удаляем пост
           deletePost(id, (err) => {
             if (err) {
               console.error('Ошибка удаления поста:', err.message);
@@ -191,6 +186,91 @@ app.whenReady().then(() => {
       }));
     }
     return [];
+  });
+
+  // IPC-обработчики для шаблонов
+  ipcMain.handle('add-template', async (event, template) => {
+    return new Promise((resolve, reject) => {
+      addTemplate(template.templateName, template.templateText, template.description, (err, id) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve(id);
+        }
+      });
+    });
+  });
+
+  ipcMain.handle('get-templates', async () => {
+    return new Promise((resolve, reject) => {
+      getTemplates((err, rows) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve(rows);
+        }
+      });
+    });
+  });
+
+  ipcMain.handle('update-template', async (event, id, { templateName, templateText, description }) => {
+    return new Promise((resolve, reject) => {
+      updateTemplate(id, templateName, templateText, description, (err) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve();
+        }
+      });
+    });
+  });
+
+  ipcMain.handle('delete-template', async (event, id) => {
+    return new Promise((resolve, reject) => {
+      deleteTemplate(id, (err) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve();
+        }
+      });
+    });
+  });
+
+  ipcMain.handle('add-post-template', async (event, postId, templateId) => {
+    return new Promise((resolve, reject) => {
+      addPostTemplate(postId, templateId, (err) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve();
+        }
+      });
+    });
+  });
+
+  ipcMain.handle('get-post-templates', async (event, postId) => {
+    return new Promise((resolve, reject) => {
+      getPostTemplates(postId, (err, rows) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve(rows);
+        }
+      });
+    });
+  });
+
+  ipcMain.handle('remove-post-template', async (event, postId, templateId) => {
+    return new Promise((resolve, reject) => {
+      removePostTemplate(postId, templateId, (err) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve();
+        }
+      });
+    });
   });
 
   createWindow();

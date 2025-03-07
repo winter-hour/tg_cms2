@@ -1,13 +1,11 @@
 import sqlite3 from 'sqlite3';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import fs from 'fs'; // Для работы с файловой системой
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const dbPath = path.join(__dirname, '../../cms.db');
-const db = new sqlite3.Database(dbPath, (err) => {
+export const db = new sqlite3.Database(path.join(__dirname, '../../cms.db'), (err) => {
   if (err) {
     console.error('Ошибка подключения к базе данных:', err.message);
   } else {
@@ -15,75 +13,159 @@ const db = new sqlite3.Database(dbPath, (err) => {
   }
 });
 
+// Создание таблицы posts с новой структурой
 db.serialize(() => {
-  // Создаём таблицу posts
-  db.run(`
-    CREATE TABLE IF NOT EXISTS posts (
+  db.run(
+    `CREATE TABLE IF NOT EXISTS posts (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
+      group_id INTEGER,
+      channel_id INTEGER,
+      user_id INTEGER,
+      title TEXT,
       text TEXT NOT NULL,
-      media TEXT,
-      status TEXT NOT NULL,
-      scheduled_at TEXT
-    )
-  `, (err) => {
-    if (err) {
-      console.error('Ошибка создания таблицы posts:', err.message);
-    } else {
-      console.log('Таблица posts готова');
+      is_published BOOLEAN DEFAULT 0,
+      published_at DATETIME,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (group_id) REFERENCES groups(id) ON DELETE SET NULL,
+      FOREIGN KEY (channel_id) REFERENCES channels(id) ON DELETE SET NULL,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+    )`,
+    (err) => {
+      if (err) console.error('Ошибка создания таблицы posts:', err.message);
+      else {
+        console.log('Таблица posts готова');
+        // Проверяем и добавляем недостающие колонки, если таблица уже существовала
+        db.run(`ALTER TABLE posts ADD COLUMN IF NOT EXISTS group_id INTEGER`, (err) => {
+          if (err) console.error('Ошибка добавления колонки group_id:', err.message);
+        });
+        db.run(`ALTER TABLE posts ADD COLUMN IF NOT EXISTS channel_id INTEGER`, (err) => {
+          if (err) console.error('Ошибка добавления колонки channel_id:', err.message);
+        });
+        db.run(`ALTER TABLE posts ADD COLUMN IF NOT EXISTS user_id INTEGER`, (err) => {
+          if (err) console.error('Ошибка добавления колонки user_id:', err.message);
+        });
+        db.run(`ALTER TABLE posts ADD COLUMN IF NOT EXISTS title TEXT`, (err) => {
+          if (err) console.error('Ошибка добавления колонки title:', err.message);
+        });
+        db.run(`ALTER TABLE posts ADD COLUMN IF NOT EXISTS is_published BOOLEAN DEFAULT 0`, (err) => {
+          if (err) console.error('Ошибка добавления колонки is_published:', err.message);
+        });
+        db.run(`ALTER TABLE posts ADD COLUMN IF NOT EXISTS published_at DATETIME`, (err) => {
+          if (err) console.error('Ошибка добавления колонки published_at:', err.message);
+        });
+      }
     }
-  });
+  );
 
-  // Создаём таблицу Attached_Files
-  db.run(`
-    CREATE TABLE IF NOT EXISTS Attached_Files (
+  // Создание вспомогательных таблиц (если они ещё не созданы)
+  db.run(
+    `CREATE TABLE IF NOT EXISTS groups (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL
+    )`,
+    (err) => {
+      if (err) console.error('Ошибка создания таблицы groups:', err.message);
+      else console.log('Таблица groups готова');
+    }
+  );
+
+  db.run(
+    `CREATE TABLE IF NOT EXISTS channels (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL
+    )`,
+    (err) => {
+      if (err) console.error('Ошибка создания таблицы channels:', err.message);
+      else console.log('Таблица channels готова');
+    }
+  );
+
+  db.run(
+    `CREATE TABLE IF NOT EXISTS users (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      username TEXT NOT NULL
+    )`,
+    (err) => {
+      if (err) console.error('Ошибка создания таблицы users:', err.message);
+      else console.log('Таблица users готова');
+    }
+  );
+
+  // Создание таблицы Attached_Files
+  db.run(
+    `CREATE TABLE IF NOT EXISTS Attached_Files (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       post_id INTEGER,
       file_path TEXT NOT NULL,
-      file_type TEXT NOT NULL,
+      file_type TEXT,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (post_id) REFERENCES posts(id)
-    )
-  `, (err) => {
-    if (err) {
-      console.error('Ошибка создания таблицы Attached_Files:', err.message);
-    } else {
-      console.log('Таблица Attached_Files готова');
+      FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE
+    )`,
+    (err) => {
+      if (err) console.error('Ошибка создания таблицы Attached_Files:', err.message);
+      else console.log('Таблица Attached_Files готова');
     }
-  });
+  );
+
+  // Создание таблицы Templates
+  db.run(
+    `CREATE TABLE IF NOT EXISTS Templates (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      template_name TEXT NOT NULL,
+      template_text TEXT NOT NULL,
+      description TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )`,
+    (err) => {
+      if (err) console.error('Ошибка создания таблицы Templates:', err.message);
+      else console.log('Таблица Templates готова');
+    }
+  );
+
+  // Создание таблицы Post_Templates
+  db.run(
+    `CREATE TABLE IF NOT EXISTS Post_Templates (
+      post_id INTEGER,
+      template_id INTEGER,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (post_id, template_id),
+      FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE,
+      FOREIGN KEY (template_id) REFERENCES Templates(id) ON DELETE CASCADE
+    )`,
+    (err) => {
+      if (err) console.error('Ошибка создания таблицы Post_Templates:', err.message);
+      else console.log('Таблица Post_Templates готова');
+    }
+  );
 });
 
-export function addPost(text, media, status, scheduledAt, callback) {
-  const stmt = db.prepare('INSERT INTO posts (text, media, status, scheduled_at) VALUES (?, ?, ?, ?)');
-  stmt.run(text, media, status, scheduledAt, function (err) {
-    if (err) {
-      console.error('Ошибка добавления поста:', err.message);
-    } else {
-      console.log('Пост добавлен с ID:', this.lastID);
-    }
+// Функции для работы с постами
+export function addPost(groupId, channelId, userId, title, text, isPublished, publishedAt, callback) {
+  const stmt = db.prepare(
+    'INSERT INTO posts (group_id, channel_id, user_id, title, text, is_published, published_at) VALUES (?, ?, ?, ?, ?, ?, ?)'
+  );
+  stmt.run(groupId, channelId, userId, title, text, isPublished ? 1 : 0, publishedAt, function (err) {
     callback(err, this.lastID);
   });
   stmt.finalize();
 }
 
 export function getPosts(callback) {
-  db.all('SELECT * FROM posts', (err, rows) => {
-    if (err) {
-      console.error('Ошибка получения постов:', err.message);
-      callback(err, null);
-    } else {
-      callback(null, rows);
+  db.all(
+    'SELECT id, group_id, channel_id, user_id, title, text, is_published, published_at, created_at, updated_at FROM posts ORDER BY id DESC',
+    (err, rows) => {
+      callback(err, rows);
     }
-  });
+  );
 }
 
-export function updatePost(id, text, media, status, scheduledAt, callback) {
-  const stmt = db.prepare('UPDATE posts SET text = ?, media = ?, status = ?, scheduled_at = ? WHERE id = ?');
-  stmt.run(text, media, status, scheduledAt, id, function (err) {
-    if (err) {
-      console.error('Ошибка обновления поста:', err.message);
-    } else {
-      console.log('Пост обновлён с ID:', id);
-    }
+export function updatePost(id, groupId, channelId, userId, title, text, isPublished, publishedAt, callback) {
+  const stmt = db.prepare(
+    'UPDATE posts SET group_id = ?, channel_id = ?, user_id = ?, title = ?, text = ?, is_published = ?, published_at = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?'
+  );
+  stmt.run(groupId, channelId, userId, title, text, isPublished ? 1 : 0, publishedAt, id, (err) => {
     callback(err);
   });
   stmt.finalize();
@@ -91,41 +173,82 @@ export function updatePost(id, text, media, status, scheduledAt, callback) {
 
 export function deletePost(id, callback) {
   const stmt = db.prepare('DELETE FROM posts WHERE id = ?');
-  stmt.run(id, function (err) {
-    if (err) {
-      console.error('Ошибка удаления поста:', err.message);
-    } else {
-      console.log('Пост удалён с ID:', id);
-    }
+  stmt.run(id, (err) => {
     callback(err);
   });
   stmt.finalize();
 }
 
-// Новая функция для добавления прикреплённого файла
 export function addAttachedFile(postId, filePath, fileType, callback) {
   const stmt = db.prepare('INSERT INTO Attached_Files (post_id, file_path, file_type) VALUES (?, ?, ?)');
   stmt.run(postId, filePath, fileType, function (err) {
-    if (err) {
-      console.error('Ошибка добавления файла:', err.message);
-    } else {
-      console.log('Файл добавлен с ID:', this.lastID);
-    }
     callback(err, this.lastID);
   });
   stmt.finalize();
 }
 
-// Новая функция для получения прикреплённых файлов по post_id
 export function getAttachedFiles(postId, callback) {
   db.all('SELECT * FROM Attached_Files WHERE post_id = ?', [postId], (err, rows) => {
-    if (err) {
-      console.error('Ошибка получения прикреплённых файлов:', err.message);
-      callback(err, null);
-    } else {
-      callback(null, rows);
-    }
+    callback(err, rows);
   });
 }
 
-export { db };
+// Функции для работы с шаблонами
+export function addTemplate(templateName, templateText, description, callback) {
+  const stmt = db.prepare('INSERT INTO Templates (template_name, template_text, description) VALUES (?, ?, ?)');
+  stmt.run(templateName, templateText, description, function (err) {
+    callback(err, this.lastID);
+  });
+  stmt.finalize();
+}
+
+export function getTemplates(callback) {
+  db.all('SELECT * FROM Templates ORDER BY created_at DESC', (err, rows) => {
+    callback(err, rows);
+  });
+}
+
+export function updateTemplate(id, templateName, templateText, description, callback) {
+  const stmt = db.prepare('UPDATE Templates SET template_name = ?, template_text = ?, description = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?');
+  stmt.run(templateName, templateText, description, id, (err) => {
+    callback(err);
+  });
+  stmt.finalize();
+}
+
+export function deleteTemplate(id, callback) {
+  const stmt = db.prepare('DELETE FROM Templates WHERE id = ?');
+  stmt.run(id, (err) => {
+    callback(err);
+  });
+  stmt.finalize();
+}
+
+// Функции для связи постов и шаблонов
+export function addPostTemplate(postId, templateId, callback) {
+  const stmt = db.prepare('INSERT INTO Post_Templates (post_id, template_id) VALUES (?, ?)');
+  stmt.run(postId, templateId, (err) => {
+    callback(err);
+  });
+  stmt.finalize();
+}
+
+export function getPostTemplates(postId, callback) {
+  db.all(
+    `SELECT t.* FROM Post_Templates pt
+     JOIN Templates t ON pt.template_id = t.id
+     WHERE pt.post_id = ?`,
+    [postId],
+    (err, rows) => {
+      callback(err, rows);
+    }
+  );
+}
+
+export function removePostTemplate(postId, templateId, callback) {
+  const stmt = db.prepare('DELETE FROM Post_Templates WHERE post_id = ? AND template_id = ?');
+  stmt.run(postId, templateId, (err) => {
+    callback(err);
+  });
+  stmt.finalize();
+}
