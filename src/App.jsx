@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   Button,
   TextField,
@@ -22,6 +22,8 @@ function App() {
   const [editText, setEditText] = useState('');
   const [selectedFiles, setSelectedFiles] = useState([]);
 
+  const editButtonRef = useRef(null); // Ссылка для управления фокусом
+
   useEffect(() => {
     fetchPosts();
   }, []);
@@ -36,6 +38,7 @@ function App() {
         })
       );
       setPosts(postsWithFiles);
+      console.log('Posts fetched:', postsWithFiles);
     } catch (err) {
       console.error('Ошибка загрузки постов:', err);
     }
@@ -54,14 +57,15 @@ function App() {
     try {
       const postId = await window.electronAPI.addPost(post);
       for (const file of selectedFiles) {
-        console.log('Processing file:', file); // Отладка
+        console.log('Processing file:', file);
         if (!file.path) {
           console.error('File path is undefined:', file);
           continue;
         }
-        const fileType = file.path.split('.').pop().toLowerCase(); // Простая проверка типа файла по расширению
-        await window.electronAPI.addAttachedFile(postId, file.path, file.name, fileType); // Передаём параметры отдельно
+        const fileType = file.path.split('.').pop().toLowerCase();
+        await window.electronAPI.addAttachedFile(postId, file.path, file.name, fileType);
       }
+      await new Promise(resolve => setTimeout(resolve, 1000));
       await fetchPosts();
       setNewPostText('');
       setSelectedFiles([]);
@@ -72,7 +76,7 @@ function App() {
 
   const handleFileDialog = async () => {
     const files = await window.electronAPI.openFileDialog();
-    console.log('Selected files:', files); // Отладка
+    console.log('Selected files:', files);
     setSelectedFiles(files);
   };
 
@@ -84,6 +88,7 @@ function App() {
   const handleSaveEdit = async () => {
     if (!editText || !editPost) return;
 
+    console.log('Saving edit - editPost:', editPost, 'editText:', editText);
     const updatedPost = {
       text: editText,
       media: editPost.media,
@@ -92,7 +97,9 @@ function App() {
     };
 
     try {
+      console.log('Calling updatePost with id:', editPost.id, 'data:', updatedPost);
       await window.electronAPI.updatePost(editPost.id, updatedPost);
+      console.log('UpdatePost called, fetching posts...');
       await fetchPosts();
       setEditPost(null);
       setEditText('');
@@ -107,6 +114,15 @@ function App() {
       await fetchPosts();
     } catch (err) {
       console.error('Ошибка удаления поста:', err);
+    }
+  };
+
+  const handleDialogClose = () => {
+    setEditPost(null);
+    setEditText('');
+    // Возвращаем фокус на кнопку "Редактировать" после закрытия
+    if (editButtonRef.current) {
+      editButtonRef.current.focus();
     }
   };
 
@@ -170,6 +186,9 @@ function App() {
                   color="primary"
                   onClick={() => handleEditPost(post)}
                   style={{ marginRight: '10px' }}
+                  ref={(el) => {
+                    if (editPost?.id === post.id) editButtonRef.current = el;
+                  }}
                 >
                   Редактировать
                 </Button>
@@ -186,7 +205,11 @@ function App() {
         </TableBody>
       </Table>
 
-      <Dialog open={!!editPost} onClose={() => setEditPost(null)}>
+      <Dialog
+        open={!!editPost}
+        onClose={handleDialogClose}
+        disableRestoreFocus // Отключаем автоматическое восстановление фокуса
+      >
         <DialogTitle>Редактировать пост</DialogTitle>
         <DialogContent>
           <TextField
@@ -195,10 +218,11 @@ function App() {
             onChange={(e) => setEditText(e.target.value)}
             fullWidth
             margin="normal"
+            autoFocus
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setEditPost(null)}>Отмена</Button>
+          <Button onClick={handleDialogClose}>Отмена</Button>
           <Button onClick={handleSaveEdit} variant="contained">
             Сохранить
           </Button>

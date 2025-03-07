@@ -47,12 +47,15 @@ app.whenReady().then(() => {
     });
   });
 
-  ipcMain.handle('update-post', async (event, { id, text, media, status, scheduledAt }) => {
+  ipcMain.handle('update-post', async (event, id, { text, media, status, scheduledAt }) => {
+    console.log('Updating post - id:', id, 'data:', { text, media, status, scheduledAt }); // Отладка
     return new Promise((resolve, reject) => {
       updatePost(id, text, media, status, scheduledAt, (err) => {
         if (err) {
+          console.error('Error updating post:', err.message); // Отладка
           reject(err);
         } else {
+          console.log('Post updated successfully'); // Отладка
           resolve();
         }
       });
