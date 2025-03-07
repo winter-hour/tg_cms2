@@ -1,6 +1,7 @@
 import sqlite3 from 'sqlite3';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import fs from 'fs'; // Для работы с файловой системой
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -15,6 +16,7 @@ const db = new sqlite3.Database(dbPath, (err) => {
 });
 
 db.serialize(() => {
+  // Создаём таблицу posts
   db.run(`
     CREATE TABLE IF NOT EXISTS posts (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -25,9 +27,27 @@ db.serialize(() => {
     )
   `, (err) => {
     if (err) {
-      console.error('Ошибка создания таблицы:', err.message);
+      console.error('Ошибка создания таблицы posts:', err.message);
     } else {
       console.log('Таблица posts готова');
+    }
+  });
+
+  // Создаём таблицу Attached_Files
+  db.run(`
+    CREATE TABLE IF NOT EXISTS Attached_Files (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      post_id INTEGER,
+      file_path TEXT NOT NULL,
+      file_type TEXT NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (post_id) REFERENCES posts(id)
+    )
+  `, (err) => {
+    if (err) {
+      console.error('Ошибка создания таблицы Attached_Files:', err.message);
+    } else {
+      console.log('Таблица Attached_Files готова');
     }
   });
 });
@@ -80,6 +100,32 @@ export function deletePost(id, callback) {
     callback(err);
   });
   stmt.finalize();
+}
+
+// Новая функция для добавления прикреплённого файла
+export function addAttachedFile(postId, filePath, fileType, callback) {
+  const stmt = db.prepare('INSERT INTO Attached_Files (post_id, file_path, file_type) VALUES (?, ?, ?)');
+  stmt.run(postId, filePath, fileType, function (err) {
+    if (err) {
+      console.error('Ошибка добавления файла:', err.message);
+    } else {
+      console.log('Файл добавлен с ID:', this.lastID);
+    }
+    callback(err, this.lastID);
+  });
+  stmt.finalize();
+}
+
+// Новая функция для получения прикреплённых файлов по post_id
+export function getAttachedFiles(postId, callback) {
+  db.all('SELECT * FROM Attached_Files WHERE post_id = ?', [postId], (err, rows) => {
+    if (err) {
+      console.error('Ошибка получения прикреплённых файлов:', err.message);
+      callback(err, null);
+    } else {
+      callback(null, rows);
+    }
+  });
 }
 
 export { db };

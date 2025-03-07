@@ -1,7 +1,8 @@
-import { app, BrowserWindow, ipcMain } from 'electron';
+import { app, BrowserWindow, ipcMain, dialog } from 'electron';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { db, addPost, getPosts, updatePost, deletePost } from '../db/database.js';
+import { db, addPost, getPosts, updatePost, deletePost, addAttachedFile, getAttachedFiles } from '../db/database.js';
+import fs from 'fs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -68,6 +69,79 @@ app.whenReady().then(() => {
         }
       });
     });
+  });
+
+  ipcMain.handle('add-attached-file', async (event, postId, filePath, fileName, fileType) => {
+    console.log('Received postId:', postId);
+    console.log('Received filePath:', filePath);
+    console.log('Received fileName:', fileName);
+    console.log('Received fileType:', fileType);
+    if (!filePath) {
+      throw new Error('File path is undefined');
+    }
+    if (typeof filePath !== 'string') {
+      throw new Error(`Invalid filePath type: ${typeof filePath}`);
+    }
+    return new Promise((resolve, reject) => {
+      const uploadsDir = path.join(__dirname, '../../uploads');
+      if (!fs.existsSync(uploadsDir)) {
+        fs.mkdirSync(uploadsDir);
+      }
+      const newFilePath = path.join(uploadsDir, fileName);
+      fs.readFile(filePath, (err, fileData) => {
+        if (err) {
+          console.error('Error reading file:', err.message);
+          reject(err);
+          return;
+        }
+        fs.writeFile(newFilePath, fileData, (err) => {
+          if (err) {
+            console.error('Error writing file:', err.message);
+            reject(err);
+            return;
+          }
+          addAttachedFile(postId, newFilePath, fileType, (err, fileId) => {
+            if (err) {
+              console.error('Error adding file to DB:', err.message);
+              reject(err);
+            } else {
+              resolve({ id: fileId, filePath: newFilePath });
+            }
+          });
+        });
+      });
+    });
+  });
+
+  ipcMain.handle('get-attached-files', async (event, postId) => {
+    return new Promise((resolve, reject) => {
+      getAttachedFiles(postId, (err, rows) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve(rows);
+        }
+      });
+    });
+  });
+
+  ipcMain.handle('open-file-dialog', async () => {
+    const result = await dialog.showOpenDialog({
+      properties: ['openFile', 'multiSelections'],
+      filters: [
+        { name: 'All Files', extensions: ['*'] },
+        { name: 'Images', extensions: ['jpg', 'png', 'gif'] },
+        { name: 'Videos', extensions: ['mp4', 'avi'] },
+        { name: 'Documents', extensions: ['pdf', 'doc', 'docx'] },
+      ],
+    });
+    if (!result.canceled && result.filePaths.length > 0) {
+      return result.filePaths.map(filePath => ({
+        path: filePath,
+        name: path.basename(filePath),
+      }));
+    }
+    return [];
   });
 
   createWindow();
