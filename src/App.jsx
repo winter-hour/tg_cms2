@@ -42,6 +42,8 @@ function App() {
 
   // Состояние для постов
   const [posts, setPosts] = useState([]);
+  const [postGroups, setPostGroups] = useState([]);
+  const [newPostGroupId, setNewPostGroupId] = useState('');
   const [newPostTitle, setNewPostTitle] = useState('');
   const [newPostText, setNewPostText] = useState('');
   const [editPost, setEditPost] = useState(null);
@@ -60,11 +62,19 @@ function App() {
   const [editTemplateText, setEditTemplateText] = useState('');
   const [editTemplateDescription, setEditTemplateDescription] = useState('');
 
+  // Состояние для групп
+  const [newGroupTitle, setNewGroupTitle] = useState('');
+  const [newGroupDescription, setNewGroupDescription] = useState('');
+  const [editGroup, setEditGroup] = useState(null);
+  const [editGroupTitle, setEditGroupTitle] = useState('');
+  const [editGroupDescription, setEditGroupDescription] = useState('');
+
   const editButtonRef = useRef(null);
 
   useEffect(() => {
     fetchPosts();
     fetchTemplates();
+    fetchPostGroups();
   }, []);
 
   const fetchPosts = async () => {
@@ -94,13 +104,23 @@ function App() {
     }
   };
 
+  const fetchPostGroups = async () => {
+    try {
+      const groupsData = await window.electronAPI.getPostGroups();
+      setPostGroups(groupsData);
+      console.log('Post groups fetched:', groupsData);
+    } catch (err) {
+      console.error('Ошибка загрузки групп:', err);
+    }
+  };
+
   const handleAddPost = async () => {
     if (!newPostText) return;
 
     const post = {
-      groupId: 1, // Заглушка, пока нет групп
-      channelId: 1, // Заглушка, пока нет каналов
-      userId: 1, // Заглушка, пока нет пользователей
+      groupId: newPostGroupId || null,
+      channelId: 1, // Заглушка
+      userId: 1, // Заглушка
       title: newPostTitle,
       text: newPostText,
       isPublished: false,
@@ -128,12 +148,12 @@ function App() {
         const fileType = file.path.split('.').pop().toLowerCase();
         await window.electronAPI.addAttachedFile(postId, file.path, file.name, fileType);
       }
-      await new Promise(resolve => setTimeout(resolve, 1000));
       await fetchPosts();
       setNewPostTitle('');
       setNewPostText('');
       setSelectedFiles([]);
       setSelectedTemplate('');
+      setNewPostGroupId('');
     } catch (err) {
       console.error('Ошибка добавления поста или файлов:', err);
     }
@@ -155,7 +175,7 @@ function App() {
     if (!editText || !editPost) return;
 
     const updatedPost = {
-      groupId: editPost.group_id || 1,
+      groupId: editPost.group_id || null,
       channelId: editPost.channel_id || 1,
       userId: editPost.user_id || 1,
       title: editTitle,
@@ -254,6 +274,48 @@ function App() {
     setNewPostText((prev) => prev + (prev ? '\n' : '') + templateText);
   };
 
+  const handleAddPostGroup = async () => {
+    if (!newGroupTitle) return;
+
+    try {
+      await window.electronAPI.addPostGroup(newGroupTitle, newGroupDescription);
+      await fetchPostGroups();
+      setNewGroupTitle('');
+      setNewGroupDescription('');
+    } catch (err) {
+      console.error('Ошибка добавления группы:', err);
+    }
+  };
+
+  const handleEditPostGroup = (group) => {
+    setEditGroup(group);
+    setEditGroupTitle(group.title);
+    setEditGroupDescription(group.group_description || '');
+  };
+
+  const handleSaveEditPostGroup = async () => {
+    if (!editGroupTitle || !editGroup) return;
+
+    try {
+      await window.electronAPI.updatePostGroup(editGroup.id, editGroupTitle, editGroupDescription);
+      await fetchPostGroups();
+      setEditGroup(null);
+      setEditGroupTitle('');
+      setEditGroupDescription('');
+    } catch (err) {
+      console.error('Ошибка редактирования группы:', err);
+    }
+  };
+
+  const handleDeletePostGroup = async (id) => {
+    try {
+      await window.electronAPI.deletePostGroup(id);
+      await fetchPostGroups();
+    } catch (err) {
+      console.error('Ошибка удаления группы:', err);
+    }
+  };
+
   const handleTabChange = (event, newValue) => {
     setTabValue(newValue);
   };
@@ -267,6 +329,12 @@ function App() {
     }
   };
 
+  const handleGroupDialogClose = () => {
+    setEditGroup(null);
+    setEditGroupTitle('');
+    setEditGroupDescription('');
+  };
+
   return (
     <Container>
       <Typography variant="h4" gutterBottom>
@@ -276,6 +344,7 @@ function App() {
       <Tabs value={tabValue} onChange={handleTabChange} centered>
         <Tab label="Посты" />
         <Tab label="Шаблоны" />
+        <Tab label="Группы" />
       </Tabs>
 
       {/* Вкладка Посты */}
@@ -297,6 +366,20 @@ function App() {
             multiline
             rows={4}
           />
+          <FormControl fullWidth margin="normal">
+            <InputLabel>Выберите группу</InputLabel>
+            <Select
+              value={newPostGroupId}
+              onChange={(e) => setNewPostGroupId(e.target.value)}
+            >
+              <MenuItem value="">Без группы</MenuItem>
+              {postGroups.map((group) => (
+                <MenuItem key={group.id} value={group.id}>
+                  {group.title}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
           <FormControl fullWidth margin="normal">
             <InputLabel>Выберите шаблон</InputLabel>
             <Select
@@ -336,6 +419,7 @@ function App() {
               <TableCell>ID</TableCell>
               <TableCell>Заголовок</TableCell>
               <TableCell>Текст</TableCell>
+              <TableCell>Группа</TableCell>
               <TableCell>Опубликовано</TableCell>
               <TableCell>Дата публикации</TableCell>
               <TableCell>Дата создания</TableCell>
@@ -350,6 +434,9 @@ function App() {
                 <TableCell>{post.id}</TableCell>
                 <TableCell>{post.title || '-'}</TableCell>
                 <TableCell>{post.text}</TableCell>
+                <TableCell>
+                  {post.group_id ? postGroups.find(g => g.id === post.group_id)?.title || 'Неизвестно' : '-'}
+                </TableCell>
                 <TableCell>{post.is_published ? 'Да' : 'Нет'}</TableCell>
                 <TableCell>{post.published_at || '-'}</TableCell>
                 <TableCell>{post.created_at}</TableCell>
@@ -472,6 +559,72 @@ function App() {
         </Table>
       </TabPanel>
 
+      {/* Вкладка Группы */}
+      <TabPanel value={tabValue} index={2}>
+        <div style={{ marginBottom: '20px' }}>
+          <TextField
+            label="Название группы"
+            value={newGroupTitle}
+            onChange={(e) => setNewGroupTitle(e.target.value)}
+            fullWidth
+            margin="normal"
+          />
+          <TextField
+            label="Описание группы"
+            value={newGroupDescription}
+            onChange={(e) => setNewGroupDescription(e.target.value)}
+            fullWidth
+            margin="normal"
+            multiline
+            rows={2}
+          />
+          <Button variant="contained" onClick={handleAddPostGroup} style={{ marginTop: '10px' }}>
+            Добавить группу
+          </Button>
+        </div>
+
+        <Table>
+          <TableHead>
+            <TableRow>
+              <TableCell>ID</TableCell>
+              <TableCell>Название</TableCell>
+              <TableCell>Описание</TableCell>
+              <TableCell>Дата создания</TableCell>
+              <TableCell>Дата обновления</TableCell>
+              <TableCell>Действия</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {postGroups.map((group) => (
+              <TableRow key={group.id}>
+                <TableCell>{group.id}</TableCell>
+                <TableCell>{group.title}</TableCell>
+                <TableCell>{group.group_description || '-'}</TableCell>
+                <TableCell>{group.created_at}</TableCell>
+                <TableCell>{group.updated_at}</TableCell>
+                <TableCell>
+                  <Button
+                    variant="outlined"
+                    color="primary"
+                    onClick={() => handleEditPostGroup(group)}
+                    style={{ marginRight: '10px' }}
+                  >
+                    Редактировать
+                  </Button>
+                  <Button
+                    variant="outlined"
+                    color="error"
+                    onClick={() => handleDeletePostGroup(group.id)}
+                  >
+                    Удалить
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </TabPanel>
+
       {/* Диалог редактирования поста */}
       <Dialog
         open={!!editPost}
@@ -497,6 +650,22 @@ function App() {
             rows={4}
             autoFocus
           />
+          <FormControl fullWidth margin="normal">
+            <InputLabel>Выберите группу</InputLabel>
+            <Select
+              value={editPost?.group_id || ''}
+              onChange={(e) => {
+                setEditPost({ ...editPost, group_id: e.target.value || null });
+              }}
+            >
+              <MenuItem value="">Без группы</MenuItem>
+              {postGroups.map((group) => (
+                <MenuItem key={group.id} value={group.id}>
+                  {group.title}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
         </DialogContent>
         <DialogActions>
           <Button onClick={handleDialogClose}>Отмена</Button>
@@ -541,6 +710,39 @@ function App() {
         <DialogActions>
           <Button onClick={() => setEditTemplate(null)}>Отмена</Button>
           <Button onClick={handleSaveEditTemplate} variant="contained">
+            Сохранить
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Диалог редактирования группы */}
+      <Dialog
+        open={!!editGroup}
+        onClose={handleGroupDialogClose}
+        disableRestoreFocus
+      >
+        <DialogTitle>Редактировать группу</DialogTitle>
+        <DialogContent>
+          <TextField
+            label="Название группы"
+            value={editGroupTitle}
+            onChange={(e) => setEditGroupTitle(e.target.value)}
+            fullWidth
+            margin="normal"
+          />
+          <TextField
+            label="Описание группы"
+            value={editGroupDescription}
+            onChange={(e) => setEditGroupDescription(e.target.value)}
+            fullWidth
+            margin="normal"
+            multiline
+            rows={2}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleGroupDialogClose}>Отмена</Button>
+          <Button onClick={handleSaveEditPostGroup} variant="contained">
             Сохранить
           </Button>
         </DialogActions>

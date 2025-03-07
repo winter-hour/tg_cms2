@@ -13,7 +13,7 @@ export const db = new sqlite3.Database(path.join(__dirname, '../../cms.db'), (er
   }
 });
 
-// Создание таблицы posts с новой структурой
+// Создание таблицы posts
 db.serialize(() => {
   db.run(
     `CREATE TABLE IF NOT EXISTS posts (
@@ -27,7 +27,7 @@ db.serialize(() => {
       published_at DATETIME,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (group_id) REFERENCES groups(id) ON DELETE SET NULL,
+      FOREIGN KEY (group_id) REFERENCES Posts_Group(id) ON DELETE SET NULL,
       FOREIGN KEY (channel_id) REFERENCES channels(id) ON DELETE SET NULL,
       FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
     )`,
@@ -39,37 +39,26 @@ db.serialize(() => {
         db.run(`ALTER TABLE posts ADD COLUMN IF NOT EXISTS group_id INTEGER`, (err) => {
           if (err) console.error('Ошибка добавления колонки group_id:', err.message);
         });
-        db.run(`ALTER TABLE posts ADD COLUMN IF NOT EXISTS channel_id INTEGER`, (err) => {
-          if (err) console.error('Ошибка добавления колонки channel_id:', err.message);
-        });
-        db.run(`ALTER TABLE posts ADD COLUMN IF NOT EXISTS user_id INTEGER`, (err) => {
-          if (err) console.error('Ошибка добавления колонки user_id:', err.message);
-        });
-        db.run(`ALTER TABLE posts ADD COLUMN IF NOT EXISTS title TEXT`, (err) => {
-          if (err) console.error('Ошибка добавления колонки title:', err.message);
-        });
-        db.run(`ALTER TABLE posts ADD COLUMN IF NOT EXISTS is_published BOOLEAN DEFAULT 0`, (err) => {
-          if (err) console.error('Ошибка добавления колонки is_published:', err.message);
-        });
-        db.run(`ALTER TABLE posts ADD COLUMN IF NOT EXISTS published_at DATETIME`, (err) => {
-          if (err) console.error('Ошибка добавления колонки published_at:', err.message);
-        });
       }
     }
   );
 
-  // Создание вспомогательных таблиц (если они ещё не созданы)
+  // Создание таблицы groups
   db.run(
-    `CREATE TABLE IF NOT EXISTS groups (
+    `CREATE TABLE IF NOT EXISTS Posts_Group (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      name TEXT NOT NULL
+      title TEXT NOT NULL,
+      group_description TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )`,
     (err) => {
-      if (err) console.error('Ошибка создания таблицы groups:', err.message);
-      else console.log('Таблица groups готова');
+      if (err) console.error('Ошибка создания таблицы Posts_Group:', err.message);
+      else console.log('Таблица Posts_Group готова');
     }
   );
 
+  // Создание таблицы channels
   db.run(
     `CREATE TABLE IF NOT EXISTS channels (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -81,6 +70,7 @@ db.serialize(() => {
     }
   );
 
+  // Создание таблицы users
   db.run(
     `CREATE TABLE IF NOT EXISTS users (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -191,6 +181,39 @@ export function getAttachedFiles(postId, callback) {
   db.all('SELECT * FROM Attached_Files WHERE post_id = ?', [postId], (err, rows) => {
     callback(err, rows);
   });
+}
+
+// Функции для работы с группами
+export function addPostGroup(title, groupDescription, callback) {
+  const stmt = db.prepare('INSERT INTO Posts_Group (title, group_description) VALUES (?, ?)');
+  stmt.run(title, groupDescription, function (err) {
+    callback(err, this.lastID);
+  });
+  stmt.finalize();
+}
+
+export function getPostGroups(callback) {
+  db.all('SELECT * FROM Posts_Group ORDER BY created_at DESC', (err, rows) => {
+    callback(err, rows);
+  });
+}
+
+export function updatePostGroup(id, title, groupDescription, callback) {
+  const stmt = db.prepare(
+    'UPDATE Posts_Group SET title = ?, group_description = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?'
+  );
+  stmt.run(title, groupDescription, id, (err) => {
+    callback(err);
+  });
+  stmt.finalize();
+}
+
+export function deletePostGroup(id, callback) {
+  const stmt = db.prepare('DELETE FROM Posts_Group WHERE id = ?');
+  stmt.run(id, (err) => {
+    callback(err);
+  });
+  stmt.finalize();
 }
 
 // Функции для работы с шаблонами

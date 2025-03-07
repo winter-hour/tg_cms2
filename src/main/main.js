@@ -1,7 +1,7 @@
 import { app, BrowserWindow, ipcMain, dialog } from 'electron';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { db, addPost, getPosts, updatePost, deletePost, addAttachedFile, getAttachedFiles, addTemplate, getTemplates, updateTemplate, deleteTemplate, addPostTemplate, getPostTemplates, removePostTemplate } from '../db/database.js';
+import { db, addPost, getPosts, updatePost, deletePost, addAttachedFile, getAttachedFiles, addTemplate, getTemplates, updateTemplate, deleteTemplate, addPostTemplate, getPostTemplates, removePostTemplate, addPostGroup, getPostGroups, updatePostGroup, deletePostGroup } from '../db/database.js';
 import fs from 'fs';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -264,6 +264,55 @@ app.whenReady().then(() => {
   ipcMain.handle('remove-post-template', async (event, postId, templateId) => {
     return new Promise((resolve, reject) => {
       removePostTemplate(postId, templateId, (err) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve();
+        }
+      });
+    });
+  });
+
+  // IPC-обработчики для групп
+  ipcMain.handle('add-post-group', async (event, title, groupDescription) => {
+    return new Promise((resolve, reject) => {
+      addPostGroup(title, groupDescription, (err, id) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve(id);
+        }
+      });
+    });
+  });
+
+  ipcMain.handle('get-post-groups', async () => {
+    return new Promise((resolve, reject) => {
+      getPostGroups((err, rows) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve(rows);
+        }
+      });
+    });
+  });
+
+  ipcMain.handle('update-post-group', async (event, id, title, groupDescription) => {
+    return new Promise((resolve, reject) => {
+      updatePostGroup(id, title, groupDescription, (err) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve();
+        }
+      });
+    });
+  });
+
+  ipcMain.handle('delete-post-group', async (event, id) => {
+    return new Promise((resolve, reject) => {
+      deletePostGroup(id, (err) => {
         if (err) {
           reject(err);
         } else {

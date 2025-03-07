@@ -18,6 +18,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   addPostTemplate: (postId, templateId) => ipcRenderer.invoke('add-post-template', postId, templateId),
   getPostTemplates: (postId) => ipcRenderer.invoke('get-post-templates', postId),
   removePostTemplate: (postId, templateId) => ipcRenderer.invoke('remove-post-template', postId, templateId),
+  addPostGroup: (title, groupDescription) => ipcRenderer.invoke('add-post-group', title, groupDescription),
+  getPostGroups: () => ipcRenderer.invoke('get-post-groups'),
+  updatePostGroup: (id, title, groupDescription) => ipcRenderer.invoke('update-post-group', id, title, groupDescription),
+  deletePostGroup: (id) => ipcRenderer.invoke('delete-post-group', id),
 });
 
 ipcRenderer.on('file-dialog-response', (event, files) => {
