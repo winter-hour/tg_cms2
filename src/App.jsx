@@ -22,6 +22,7 @@ import {
   InputLabel,
   Checkbox,
   FormControlLabel,
+  Grid,
 } from '@mui/material';
 
 function TabPanel(props) {
@@ -74,6 +75,7 @@ function App() {
 
   // Состояние для групп свойств
   const [propertyGroups, setPropertyGroups] = useState([]);
+  const [selectedPropertyGroupId, setSelectedPropertyGroupId] = useState('');
   const [newPropertyGroupName, setNewPropertyGroupName] = useState('');
   const [newPropertyGroupDescription, setNewPropertyGroupDescription] = useState('');
   const [editPropertyGroup, setEditPropertyGroup] = useState(null);
@@ -82,7 +84,6 @@ function App() {
 
   // Состояние для значений свойств
   const [propertyValues, setPropertyValues] = useState([]);
-  const [selectedPropertyGroupId, setSelectedPropertyGroupId] = useState('');
   const [newPropertyName, setNewPropertyName] = useState('');
   const [newValueType, setNewValueType] = useState('text');
   const [newPropertyValue, setNewPropertyValue] = useState('');
@@ -820,75 +821,29 @@ function App() {
 
       {/* Вкладка Свойства */}
       <TabPanel value={tabValue} index={3}>
-        <div style={{ marginBottom: '20px' }}>
-          <Typography variant="h6">Группы свойств</Typography>
-          <TextField
-            label="Название группы свойств"
-            value={newPropertyGroupName}
-            onChange={(e) => setNewPropertyGroupName(e.target.value)}
-            fullWidth
-            margin="normal"
-          />
-          <TextField
-            label="Описание группы свойств"
-            value={newPropertyGroupDescription}
-            onChange={(e) => setNewPropertyGroupDescription(e.target.value)}
-            fullWidth
-            margin="normal"
-            multiline
-            rows={2}
-          />
-          <Button variant="contained" onClick={handleAddPropertyGroup} style={{ marginTop: '10px' }}>
-            Добавить группу свойств
-          </Button>
-          <FormControl fullWidth margin="normal">
-            <InputLabel>Выберите группу свойств</InputLabel>
-            <Select
-              value={selectedPropertyGroupId}
-              onChange={(e) => {
-                setSelectedPropertyGroupId(e.target.value);
-                fetchPropertyValues(e.target.value);
-              }}
-            >
-              <MenuItem value="">Выберите группу</MenuItem>
-              {propertyGroups.map((group) => (
-                <MenuItem key={group.id} value={group.id}>
-                  {group.group_name}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-        </div>
-
-        {selectedPropertyGroupId && (
-          <div>
-            <Typography variant="h6">Значения свойств</Typography>
+        <Grid container spacing={3}>
+          {/* Левая часть: Группы свойств */}
+          <Grid item xs={6}>
+            <Typography variant="h6">Группы свойств</Typography>
             <div style={{ marginBottom: '20px' }}>
               <TextField
-                label="Название свойства"
-                value={newPropertyName}
-                onChange={(e) => setNewPropertyName(e.target.value)}
+                label="Название группы свойств"
+                value={newPropertyGroupName}
+                onChange={(e) => setNewPropertyGroupName(e.target.value)}
                 fullWidth
                 margin="normal"
               />
-              <FormControl fullWidth margin="normal">
-                <InputLabel>Тип значения</InputLabel>
-                <Select value={newValueType} onChange={(e) => setNewValueType(e.target.value)}>
-                  <MenuItem value="text">Текст</MenuItem>
-                  <MenuItem value="number">Число</MenuItem>
-                  <MenuItem value="date">Дата</MenuItem>
-                  <MenuItem value="boolean">Логическое</MenuItem>
-                </Select>
-              </FormControl>
               <TextField
-                label="Значение свойства"
-                value={newPropertyValue}
-                onChange={(e) => setNewPropertyValue(e.target.value)}
+                label="Описание группы свойств"
+                value={newPropertyGroupDescription}
+                onChange={(e) => setNewPropertyGroupDescription(e.target.value)}
                 fullWidth
                 margin="normal"
+                multiline
+                rows={2}
               />
-              <Button variant="contained" onClick={handleAddPropertyValue} style={{ marginTop: '10px' }}>
-                Добавить значение
+              <Button variant="contained" onClick={handleAddPropertyGroup} style={{ marginTop: '10px' }}>
+                Добавить группу
               </Button>
             </div>
 
@@ -897,27 +852,34 @@ function App() {
                 <TableRow>
                   <TableCell>ID</TableCell>
                   <TableCell>Название</TableCell>
-                  <TableCell>Тип</TableCell>
-                  <TableCell>Значение</TableCell>
+                  <TableCell>Описание</TableCell>
                   <TableCell>Дата создания</TableCell>
                   <TableCell>Дата обновления</TableCell>
                   <TableCell>Действия</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
-                {propertyValues.map((value) => (
-                  <TableRow key={value.id}>
-                    <TableCell>{value.id}</TableCell>
-                    <TableCell>{value.property_name}</TableCell>
-                    <TableCell>{value.value_type}</TableCell>
-                    <TableCell>{value.property_value}</TableCell>
-                    <TableCell>{value.created_at}</TableCell>
-                    <TableCell>{value.updated_at}</TableCell>
+                {propertyGroups.map((group) => (
+                  <TableRow
+                    key={group.id}
+                    onClick={() => setSelectedPropertyGroupId(group.id)}
+                    selected={selectedPropertyGroupId === group.id}
+                    hover
+                    style={{ cursor: 'pointer' }}
+                  >
+                    <TableCell>{group.id}</TableCell>
+                    <TableCell>{group.group_name}</TableCell>
+                    <TableCell>{group.group_description || '-'}</TableCell>
+                    <TableCell>{group.created_at}</TableCell>
+                    <TableCell>{group.updated_at}</TableCell>
                     <TableCell>
                       <Button
                         variant="outlined"
                         color="primary"
-                        onClick={() => handleEditPropertyValue(value)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleEditPropertyGroup(group);
+                        }}
                         style={{ marginRight: '10px' }}
                       >
                         Редактировать
@@ -925,7 +887,10 @@ function App() {
                       <Button
                         variant="outlined"
                         color="error"
-                        onClick={() => handleDeletePropertyValue(value.id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeletePropertyGroup(group.id);
+                        }}
                       >
                         Удалить
                       </Button>
@@ -934,8 +899,88 @@ function App() {
                 ))}
               </TableBody>
             </Table>
-          </div>
-        )}
+          </Grid>
+
+          {/* Правая часть: Значения свойств */}
+          <Grid item xs={6}>
+            {selectedPropertyGroupId && (
+              <Box>
+                <Typography variant="h6">Свойства группы: {propertyGroups.find(g => g.id === selectedPropertyGroupId)?.group_name}</Typography>
+                <div style={{ marginBottom: '20px' }}>
+                  <TextField
+                    label="Название свойства"
+                    value={newPropertyName}
+                    onChange={(e) => setNewPropertyName(e.target.value)}
+                    fullWidth
+                    margin="normal"
+                  />
+                  <FormControl fullWidth margin="normal">
+                    <InputLabel>Тип значения</InputLabel>
+                    <Select value={newValueType} onChange={(e) => setNewValueType(e.target.value)}>
+                      <MenuItem value="text">Текст</MenuItem>
+                      <MenuItem value="number">Число</MenuItem>
+                      <MenuItem value="date">Дата</MenuItem>
+                      <MenuItem value="boolean">Логическое</MenuItem>
+                    </Select>
+                  </FormControl>
+                  <TextField
+                    label="Значение свойства"
+                    value={newPropertyValue}
+                    onChange={(e) => setNewPropertyValue(e.target.value)}
+                    fullWidth
+                    margin="normal"
+                  />
+                  <Button variant="contained" onClick={handleAddPropertyValue} style={{ marginTop: '10px' }}>
+                    Добавить значение
+                  </Button>
+                </div>
+
+                <Table>
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>ID</TableCell>
+                      <TableCell>Название</TableCell>
+                      <TableCell>Тип</TableCell>
+                      <TableCell>Значение</TableCell>
+                      <TableCell>Дата создания</TableCell>
+                      <TableCell>Дата обновления</TableCell>
+                      <TableCell>Действия</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {propertyValues.map((value) => (
+                      <TableRow key={value.id}>
+                        <TableCell>{value.id}</TableCell>
+                        <TableCell>{value.property_name}</TableCell>
+                        <TableCell>{value.value_type}</TableCell>
+                        <TableCell>{value.property_value}</TableCell>
+                        <TableCell>{value.created_at}</TableCell>
+                        <TableCell>{value.updated_at}</TableCell>
+                        <TableCell>
+                          <Button
+                            variant="outlined"
+                            color="primary"
+                            onClick={() => handleEditPropertyValue(value)}
+                            style={{ marginRight: '10px' }}
+                          >
+                            Редактировать
+                          </Button>
+                          <Button
+                            variant="outlined"
+                            color="error"
+                            onClick={() => handleDeletePropertyValue(value.id)}
+                          >
+                            Удалить
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </Box>
+            )}
+          </Grid>
+        </Grid>
       </TabPanel>
 
       {/* Диалог редактирования поста */}
