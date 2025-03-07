@@ -9,9 +9,9 @@ const __dirname = path.dirname(__filename);
 
 function createWindow() {
   const win = new BrowserWindow({
-    width: 800,
-    height: 600,
-    frame: true,
+    width: 1200,
+    height: 800,
+    frame: false,
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
@@ -21,6 +21,23 @@ function createWindow() {
 
   win.loadURL('http://localhost:5173');
   win.webContents.openDevTools();
+
+// Обработчики для управления окном
+  ipcMain.handle('minimize-window', () => win.minimize());
+  ipcMain.handle('maximize-window', () => {
+    if (win.isMaximized()) {
+      win.unmaximize();
+    } else {
+      win.maximize();
+    }
+  });
+  ipcMain.handle('close-window', () => win.close());
+
+   // Отключаем скроллбары окна
+   win.setScrollable(false);
+
+   // Убедиться, что окно не масштабируется за пределы содержимого
+   win.setResizable(true); // Или false, если не хотите изменения размера
 }
 
 app.whenReady().then(() => {

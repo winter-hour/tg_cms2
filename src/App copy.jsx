@@ -511,16 +511,7 @@ function App() {
   const TITLE_BAR_HEIGHT = 32; // Высота титульной панели
 
   return (
-    <Box
-      sx={{
-        display: 'flex',
-        height: '100vh',
-        width: '100vw',
-        margin: 0,
-        padding: 0,
-        overflow: 'hidden', // Убираем скролл на уровне корневого контейнера
-      }}
-    >
+    <Box sx={{ display: 'flex', height: '100vh', width: '100vw', margin: 0, padding: 0, overflow: 'hidden' }}>
       {/* Кастомная титульная панель */}
       <TitleBar />
 
@@ -531,7 +522,7 @@ function App() {
           bgcolor: '#f5f5f5',
           borderRight: '1px solid #ddd',
           height: `calc(100vh - ${TITLE_BAR_HEIGHT}px)`, // Учитываем высоту титульной панели
-          overflow: 'auto', // Скролл только внутри боковой панели
+          overflow: 'auto',
           transition: 'width 0.3s', // Плавное переключение ширины
           ml: 0,
           p: 0,
@@ -621,12 +612,11 @@ function App() {
         sx={{
           flexGrow: 1,
           p: 3,
-          overflow: 'auto', // Скролл только внутри основной области
+          overflow: 'auto',
           ml: SIDEBAR_MARGIN, // Фиксированный минимальный отступ слева
           transition: 'margin-left 0.3s', // Плавное смещение при раскрытии
           marginLeft: isSidebarOpen ? `${SIDEBAR_OPEN_WIDTH + SIDEBAR_MARGIN}px` : `${SIDEBAR_CLOSED_WIDTH + SIDEBAR_MARGIN}px`, // Динамическое смещение
           marginTop: `${TITLE_BAR_HEIGHT}px`, // Сдвиг вниз на высоту титульной панели
-          maxHeight: `calc(100vh - ${TITLE_BAR_HEIGHT}px)`, // Ограничиваем высоту содержимого
         }}
       >
         {/* Вкладка Посты */}

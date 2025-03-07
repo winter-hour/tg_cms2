@@ -1,6 +1,10 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('electronAPI', {
+  minimizeWindow: () => ipcRenderer.invoke('minimize-window'),
+  maximizeWindow: () => ipcRenderer.invoke('maximize-window'),
+  closeWindow: () => ipcRenderer.invoke('close-window'),
+
   addPost: (groupId, channelId, userId, title, text, isPublished, publishedAt) =>
     ipcRenderer.invoke('add-post', groupId, channelId, userId, title, text, isPublished, publishedAt),
   getPosts: () => ipcRenderer.invoke('get-posts'),
