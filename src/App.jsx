@@ -7,7 +7,6 @@ import {
   TableCell,
   TableHead,
   TableRow,
-  Container,
   Typography,
   Dialog,
   DialogTitle,
@@ -19,7 +18,6 @@ import {
   FormControl,
   InputLabel,
   Checkbox,
-  FormControlLabel,
   Grid,
   List,
   ListItem,
@@ -497,7 +495,7 @@ function App() {
   ];
 
   return (
-    <Container sx={{ display: 'flex', height: '100vh', padding: 0 }}>
+    <Box sx={{ display: 'flex', height: '100vh', width: '100vw', margin: 0, padding: 0 }}>
       {/* Боковая панель */}
       <Box
         sx={{
@@ -506,11 +504,10 @@ function App() {
           borderRight: '1px solid #ddd',
           height: '100%',
           overflow: 'auto',
+          ml: 0,
+          p: 0,
         }}
       >
-        <Typography variant="h6" sx={{ p: 2, borderBottom: '1px solid #ddd' }}>
-          Telegram CMS
-        </Typography>
         <List>
           {tabs.map((tab) => (
             <ListItem
@@ -522,6 +519,7 @@ function App() {
                 '&:hover': {
                   bgcolor: '#e0e0e0',
                 },
+                p: 1,
               }}
             >
               <ListItemIcon>{tab.icon}</ListItemIcon>
@@ -1239,7 +1237,7 @@ function App() {
           </Button>
         </DialogActions>
       </Dialog>
-    </Container>
+    </Box>
   );
 }
 
