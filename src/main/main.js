@@ -48,14 +48,14 @@ app.whenReady().then(() => {
   });
 
   ipcMain.handle('update-post', async (event, id, { text, media, status, scheduledAt }) => {
-    console.log('Updating post - id:', id, 'data:', { text, media, status, scheduledAt }); // Отладка
+    console.log('Обновление поста - id:', id, 'данные:', { text, media, status, scheduledAt });
     return new Promise((resolve, reject) => {
       updatePost(id, text, media, status, scheduledAt, (err) => {
         if (err) {
-          console.error('Error updating post:', err.message); // Отладка
+          console.error('Ошибка обновления поста:', err.message);
           reject(err);
         } else {
-          console.log('Post updated successfully'); // Отладка
+          console.log('Пост успешно обновлён');
           resolve();
         }
       });
@@ -63,12 +63,58 @@ app.whenReady().then(() => {
   });
 
   ipcMain.handle('delete-post', async (event, id) => {
+    console.log('Начало удаления поста с id:', id);
     return new Promise((resolve, reject) => {
-      deletePost(id, (err) => {
+      // Получаем все прикреплённые файлы для поста
+      getAttachedFiles(id, (err, files) => {
         if (err) {
+          console.error('Ошибка получения прикреплённых файлов:', err.message);
           reject(err);
+          return;
+        }
+        if (files && files.length > 0) {
+          console.log('Найдены файлы для удаления:', files);
+          // Удаляем файлы из папки uploads
+          files.forEach(file => {
+            const filePath = file.file_path;
+            fs.unlink(filePath, (err) => {
+              if (err) {
+                console.error('Ошибка удаления файла:', err.message, 'Путь:', filePath);
+              } else {
+                console.log('Файл успешно удалён:', filePath);
+              }
+            });
+          });
+          // Удаляем записи из таблицы Attached_Files
+          db.run('DELETE FROM Attached_Files WHERE post_id = ?', id, (err) => {
+            if (err) {
+              console.error('Ошибка удаления записей из Attached_Files:', err.message);
+              reject(err);
+              return;
+            }
+            console.log('Записи из Attached_Files удалены для поста id:', id);
+            // Удаляем сам пост
+            deletePost(id, (err) => {
+              if (err) {
+                console.error('Ошибка удаления поста:', err.message);
+                reject(err);
+              } else {
+                console.log('Пост успешно удалён');
+                resolve();
+              }
+            });
+          });
         } else {
-          resolve();
+          // Если нет прикреплённых файлов, просто удаляем пост
+          deletePost(id, (err) => {
+            if (err) {
+              console.error('Ошибка удаления поста:', err.message);
+              reject(err);
+            } else {
+              console.log('Пост успешно удалён (без файлов)');
+              resolve();
+            }
+          });
         }
       });
     });
@@ -93,19 +139,19 @@ app.whenReady().then(() => {
       const newFilePath = path.join(uploadsDir, fileName);
       fs.readFile(filePath, (err, fileData) => {
         if (err) {
-          console.error('Error reading file:', err.message);
+          console.error('Ошибка чтения файла:', err.message);
           reject(err);
           return;
         }
         fs.writeFile(newFilePath, fileData, (err) => {
           if (err) {
-            console.error('Error writing file:', err.message);
+            console.error('Ошибка записи файла:', err.message);
             reject(err);
             return;
           }
           addAttachedFile(postId, newFilePath, fileType, (err, fileId) => {
             if (err) {
-              console.error('Error adding file to DB:', err.message);
+              console.error('Ошибка добавления файла в БД:', err.message);
               reject(err);
             } else {
               resolve({ id: fileId, filePath: newFilePath });
@@ -132,10 +178,10 @@ app.whenReady().then(() => {
     const result = await dialog.showOpenDialog({
       properties: ['openFile', 'multiSelections'],
       filters: [
-        { name: 'All Files', extensions: ['*'] },
-        { name: 'Images', extensions: ['jpg', 'png', 'gif'] },
-        { name: 'Videos', extensions: ['mp4', 'avi'] },
-        { name: 'Documents', extensions: ['pdf', 'doc', 'docx'] },
+        { name: 'Все файлы', extensions: ['*'] },
+        { name: 'Изображения', extensions: ['jpg', 'png', 'gif'] },
+        { name: 'Видео', extensions: ['mp4', 'avi'] },
+        { name: 'Документы', extensions: ['pdf', 'doc', 'docx'] },
       ],
     });
     if (!result.canceled && result.filePaths.length > 0) {
