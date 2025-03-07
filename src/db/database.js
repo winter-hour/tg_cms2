@@ -33,17 +33,11 @@ db.serialize(() => {
     )`,
     (err) => {
       if (err) console.error('Ошибка создания таблицы posts:', err.message);
-      else {
-        console.log('Таблица posts готова');
-        // Проверяем и добавляем недостающие колонки, если таблица уже существовала
-        db.run(`ALTER TABLE posts ADD COLUMN IF NOT EXISTS group_id INTEGER`, (err) => {
-          if (err) console.error('Ошибка добавления колонки group_id:', err.message);
-        });
-      }
+      else console.log('Таблица posts готова');
     }
   );
 
-  // Создание таблицы groups
+  // Создание таблицы Posts_Group
   db.run(
     `CREATE TABLE IF NOT EXISTS Posts_Group (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -55,6 +49,55 @@ db.serialize(() => {
     (err) => {
       if (err) console.error('Ошибка создания таблицы Posts_Group:', err.message);
       else console.log('Таблица Posts_Group готова');
+    }
+  );
+
+  // Создание таблицы Post_Property_Groups
+  db.run(
+    `CREATE TABLE IF NOT EXISTS Post_Property_Groups (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      group_name TEXT NOT NULL,
+      group_description TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )`,
+    (err) => {
+      if (err) console.error('Ошибка создания таблицы Post_Property_Groups:', err.message);
+      else console.log('Таблица Post_Property_Groups готова');
+    }
+  );
+
+  // Создание таблицы Post_Property_Values
+  db.run(
+    `CREATE TABLE IF NOT EXISTS Post_Property_Values (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      group_id INTEGER,
+      property_name TEXT NOT NULL,
+      value_type TEXT CHECK(value_type IN ('text', 'number', 'date', 'boolean')),
+      property_value TEXT NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (group_id) REFERENCES Post_Property_Groups(id) ON DELETE CASCADE
+    )`,
+    (err) => {
+      if (err) console.error('Ошибка создания таблицы Post_Property_Values:', err.message);
+      else console.log('Таблица Post_Property_Values готова');
+    }
+  );
+
+  // Создание таблицы Post_Properties
+  db.run(
+    `CREATE TABLE IF NOT EXISTS Post_Properties (
+      post_id INTEGER,
+      value_id INTEGER,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (post_id, value_id),
+      FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE,
+      FOREIGN KEY (value_id) REFERENCES Post_Property_Values(id) ON DELETE CASCADE
+    )`,
+    (err) => {
+      if (err) console.error('Ошибка создания таблицы Post_Properties:', err.message);
+      else console.log('Таблица Post_Properties готова');
     }
   );
 
@@ -183,7 +226,7 @@ export function getAttachedFiles(postId, callback) {
   });
 }
 
-// Функции для работы с группами
+// Функции для работы с группами постов
 export function addPostGroup(title, groupDescription, callback) {
   const stmt = db.prepare('INSERT INTO Posts_Group (title, group_description) VALUES (?, ?)');
   stmt.run(title, groupDescription, function (err) {
@@ -211,6 +254,107 @@ export function updatePostGroup(id, title, groupDescription, callback) {
 export function deletePostGroup(id, callback) {
   const stmt = db.prepare('DELETE FROM Posts_Group WHERE id = ?');
   stmt.run(id, (err) => {
+    callback(err);
+  });
+  stmt.finalize();
+}
+
+// Функции для работы с группами свойств
+export function addPropertyGroup(groupName, groupDescription, callback) {
+  const stmt = db.prepare('INSERT INTO Post_Property_Groups (group_name, group_description) VALUES (?, ?)');
+  stmt.run(groupName, groupDescription, function (err) {
+    callback(err, this.lastID);
+  });
+  stmt.finalize();
+}
+
+export function getPropertyGroups(callback) {
+  db.all('SELECT * FROM Post_Property_Groups ORDER BY created_at DESC', (err, rows) => {
+    callback(err, rows);
+  });
+}
+
+export function updatePropertyGroup(id, groupName, groupDescription, callback) {
+  const stmt = db.prepare(
+    'UPDATE Post_Property_Groups SET group_name = ?, group_description = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?'
+  );
+  stmt.run(groupName, groupDescription, id, (err) => {
+    callback(err);
+  });
+  stmt.finalize();
+}
+
+export function deletePropertyGroup(id, callback) {
+  const stmt = db.prepare('DELETE FROM Post_Property_Groups WHERE id = ?');
+  stmt.run(id, (err) => {
+    callback(err);
+  });
+  stmt.finalize();
+}
+
+// Функции для работы со значениями свойств
+export function addPropertyValue(groupId, propertyName, valueType, propertyValue, callback) {
+  const stmt = db.prepare(
+    'INSERT INTO Post_Property_Values (group_id, property_name, value_type, property_value) VALUES (?, ?, ?, ?)'
+  );
+  stmt.run(groupId, propertyName, valueType, propertyValue, function (err) {
+    callback(err, this.lastID);
+  });
+  stmt.finalize();
+}
+
+export function getPropertyValues(groupId, callback) {
+  db.all(
+    'SELECT * FROM Post_Property_Values WHERE group_id = ? ORDER BY created_at DESC',
+    [groupId],
+    (err, rows) => {
+      callback(err, rows);
+    }
+  );
+}
+
+export function updatePropertyValue(id, propertyName, valueType, propertyValue, callback) {
+  const stmt = db.prepare(
+    'UPDATE Post_Property_Values SET property_name = ?, value_type = ?, property_value = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?'
+  );
+  stmt.run(propertyName, valueType, propertyValue, id, (err) => {
+    callback(err);
+  });
+  stmt.finalize();
+}
+
+export function deletePropertyValue(id, callback) {
+  const stmt = db.prepare('DELETE FROM Post_Property_Values WHERE id = ?');
+  stmt.run(id, (err) => {
+    callback(err);
+  });
+  stmt.finalize();
+}
+
+// Функции для работы со свойствами постов
+export function addPostProperty(postId, valueId, callback) {
+  const stmt = db.prepare('INSERT INTO Post_Properties (post_id, value_id) VALUES (?, ?)');
+  stmt.run(postId, valueId, (err) => {
+    callback(err);
+  });
+  stmt.finalize();
+}
+
+export function getPostProperties(postId, callback) {
+  db.all(
+    `SELECT pv.* FROM Post_Properties pp
+     JOIN Post_Property_Values pv ON pp.value_id = pv.id
+     WHERE pp.post_id = ?`,
+    [postId],
+    (err, rows) => {
+      callback(err, rows);
+    }
+  );
+}
+
+export function removePostProperty(postId, valueId, callback) {
+  const stmt = db.prepare('DELETE FROM Post_Properties WHERE post_id = ? AND value_id = ?');
+  stmt.run(postId, valueId, (err) => {
     callback(err);
   });
   stmt.finalize();

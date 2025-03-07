@@ -22,6 +22,19 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getPostGroups: () => ipcRenderer.invoke('get-post-groups'),
   updatePostGroup: (id, title, groupDescription) => ipcRenderer.invoke('update-post-group', id, title, groupDescription),
   deletePostGroup: (id) => ipcRenderer.invoke('delete-post-group', id),
+  addPropertyGroup: (groupName, groupDescription) => ipcRenderer.invoke('add-property-group', groupName, groupDescription),
+  getPropertyGroups: () => ipcRenderer.invoke('get-property-groups'),
+  updatePropertyGroup: (id, groupName, groupDescription) => ipcRenderer.invoke('update-property-group', id, groupName, groupDescription),
+  deletePropertyGroup: (id) => ipcRenderer.invoke('delete-property-group', id),
+  addPropertyValue: (groupId, propertyName, valueType, propertyValue) =>
+    ipcRenderer.invoke('add-property-value', groupId, propertyName, valueType, propertyValue),
+  getPropertyValues: (groupId) => ipcRenderer.invoke('get-property-values', groupId),
+  updatePropertyValue: (id, propertyName, valueType, propertyValue) =>
+    ipcRenderer.invoke('update-property-value', id, propertyName, valueType, propertyValue),
+  deletePropertyValue: (id) => ipcRenderer.invoke('delete-property-value', id),
+  addPostProperty: (postId, valueId) => ipcRenderer.invoke('add-post-property', postId, valueId),
+  getPostProperties: (postId) => ipcRenderer.invoke('get-post-properties', postId),
+  removePostProperty: (postId, valueId) => ipcRenderer.invoke('remove-post-property', postId, valueId),
 });
 
 ipcRenderer.on('file-dialog-response', (event, files) => {

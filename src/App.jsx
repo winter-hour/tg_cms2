@@ -20,6 +20,8 @@ import {
   MenuItem,
   FormControl,
   InputLabel,
+  Checkbox,
+  FormControlLabel,
 } from '@mui/material';
 
 function TabPanel(props) {
@@ -51,6 +53,7 @@ function App() {
   const [editText, setEditText] = useState('');
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [selectedTemplate, setSelectedTemplate] = useState('');
+  const [selectedProperties, setSelectedProperties] = useState([]);
 
   // Состояние для шаблонов
   const [templates, setTemplates] = useState([]);
@@ -69,13 +72,34 @@ function App() {
   const [editGroupTitle, setEditGroupTitle] = useState('');
   const [editGroupDescription, setEditGroupDescription] = useState('');
 
+  // Состояние для групп свойств
+  const [propertyGroups, setPropertyGroups] = useState([]);
+  const [newPropertyGroupName, setNewPropertyGroupName] = useState('');
+  const [newPropertyGroupDescription, setNewPropertyGroupDescription] = useState('');
+  const [editPropertyGroup, setEditPropertyGroup] = useState(null);
+  const [editPropertyGroupName, setEditPropertyGroupName] = useState('');
+  const [editPropertyGroupDescription, setEditPropertyGroupDescription] = useState('');
+
+  // Состояние для значений свойств
+  const [propertyValues, setPropertyValues] = useState([]);
+  const [selectedPropertyGroupId, setSelectedPropertyGroupId] = useState('');
+  const [newPropertyName, setNewPropertyName] = useState('');
+  const [newValueType, setNewValueType] = useState('text');
+  const [newPropertyValue, setNewPropertyValue] = useState('');
+  const [editPropertyValue, setEditPropertyValue] = useState(null);
+  const [editPropertyName, setEditPropertyName] = useState('');
+  const [editValueType, setEditValueType] = useState('text');
+  const [editPropertyValueText, setEditPropertyValueText] = useState('');
+
   const editButtonRef = useRef(null);
 
   useEffect(() => {
     fetchPosts();
     fetchTemplates();
     fetchPostGroups();
-  }, []);
+    fetchPropertyGroups();
+    if (selectedPropertyGroupId) fetchPropertyValues(selectedPropertyGroupId);
+  }, [selectedPropertyGroupId]);
 
   const fetchPosts = async () => {
     try {
@@ -84,7 +108,8 @@ function App() {
         postsData.map(async (post) => {
           const files = await window.electronAPI.getAttachedFiles(post.id);
           const templates = await window.electronAPI.getPostTemplates(post.id);
-          return { ...post, attachedFiles: files, templates };
+          const properties = await window.electronAPI.getPostProperties(post.id);
+          return { ...post, attachedFiles: files, templates, properties };
         })
       );
       setPosts(postsWithFilesAndTemplates);
@@ -111,6 +136,26 @@ function App() {
       console.log('Post groups fetched:', groupsData);
     } catch (err) {
       console.error('Ошибка загрузки групп:', err);
+    }
+  };
+
+  const fetchPropertyGroups = async () => {
+    try {
+      const groupsData = await window.electronAPI.getPropertyGroups();
+      setPropertyGroups(groupsData);
+      console.log('Property groups fetched:', groupsData);
+    } catch (err) {
+      console.error('Ошибка загрузки групп свойств:', err);
+    }
+  };
+
+  const fetchPropertyValues = async (groupId) => {
+    try {
+      const valuesData = await window.electronAPI.getPropertyValues(groupId);
+      setPropertyValues(valuesData);
+      console.log('Property values fetched:', valuesData);
+    } catch (err) {
+      console.error('Ошибка загрузки значений свойств:', err);
     }
   };
 
@@ -148,12 +193,16 @@ function App() {
         const fileType = file.path.split('.').pop().toLowerCase();
         await window.electronAPI.addAttachedFile(postId, file.path, file.name, fileType);
       }
+      for (const valueId of selectedProperties) {
+        await window.electronAPI.addPostProperty(postId, valueId);
+      }
       await fetchPosts();
       setNewPostTitle('');
       setNewPostText('');
       setSelectedFiles([]);
       setSelectedTemplate('');
       setNewPostGroupId('');
+      setSelectedProperties([]);
     } catch (err) {
       console.error('Ошибка добавления поста или файлов:', err);
     }
@@ -169,6 +218,7 @@ function App() {
     setEditPost(post);
     setEditTitle(post.title || '');
     setEditText(post.text || '');
+    setSelectedProperties(post.properties ? post.properties.map(p => p.id) : []);
   };
 
   const handleSaveEdit = async () => {
@@ -195,10 +245,20 @@ function App() {
         updatedPost.isPublished,
         updatedPost.publishedAt
       );
+      const currentProperties = editPost.properties ? editPost.properties.map(p => p.id) : [];
+      const propertiesToRemove = currentProperties.filter(id => !selectedProperties.includes(id));
+      const propertiesToAdd = selectedProperties.filter(id => !currentProperties.includes(id));
+      for (const id of propertiesToRemove) {
+        await window.electronAPI.removePostProperty(editPost.id, id);
+      }
+      for (const id of propertiesToAdd) {
+        await window.electronAPI.addPostProperty(editPost.id, id);
+      }
       await fetchPosts();
       setEditPost(null);
       setEditTitle('');
       setEditText('');
+      setSelectedProperties([]);
     } catch (err) {
       console.error('Ошибка редактирования поста:', err);
     }
@@ -316,6 +376,95 @@ function App() {
     }
   };
 
+  const handleAddPropertyGroup = async () => {
+    if (!newPropertyGroupName) return;
+
+    try {
+      await window.electronAPI.addPropertyGroup(newPropertyGroupName, newPropertyGroupDescription);
+      await fetchPropertyGroups();
+      setNewPropertyGroupName('');
+      setNewPropertyGroupDescription('');
+    } catch (err) {
+      console.error('Ошибка добавления группы свойств:', err);
+    }
+  };
+
+  const handleEditPropertyGroup = (group) => {
+    setEditPropertyGroup(group);
+    setEditPropertyGroupName(group.group_name);
+    setEditPropertyGroupDescription(group.group_description || '');
+  };
+
+  const handleSaveEditPropertyGroup = async () => {
+    if (!editPropertyGroupName || !editPropertyGroup) return;
+
+    try {
+      await window.electronAPI.updatePropertyGroup(editPropertyGroup.id, editPropertyGroupName, editPropertyGroupDescription);
+      await fetchPropertyGroups();
+      setEditPropertyGroup(null);
+      setEditPropertyGroupName('');
+      setEditPropertyGroupDescription('');
+    } catch (err) {
+      console.error('Ошибка редактирования группы свойств:', err);
+    }
+  };
+
+  const handleDeletePropertyGroup = async (id) => {
+    try {
+      await window.electronAPI.deletePropertyGroup(id);
+      await fetchPropertyGroups();
+      setSelectedPropertyGroupId('');
+      setPropertyValues([]);
+    } catch (err) {
+      console.error('Ошибка удаления группы свойств:', err);
+    }
+  };
+
+  const handleAddPropertyValue = async () => {
+    if (!newPropertyName || !newPropertyValue) return;
+
+    try {
+      await window.electronAPI.addPropertyValue(selectedPropertyGroupId, newPropertyName, newValueType, newPropertyValue);
+      await fetchPropertyValues(selectedPropertyGroupId);
+      setNewPropertyName('');
+      setNewValueType('text');
+      setNewPropertyValue('');
+    } catch (err) {
+      console.error('Ошибка добавления значения свойства:', err);
+    }
+  };
+
+  const handleEditPropertyValue = (value) => {
+    setEditPropertyValue(value);
+    setEditPropertyName(value.property_name);
+    setEditValueType(value.value_type);
+    setEditPropertyValueText(value.property_value);
+  };
+
+  const handleSaveEditPropertyValue = async () => {
+    if (!editPropertyName || !editPropertyValueText || !editPropertyValue) return;
+
+    try {
+      await window.electronAPI.updatePropertyValue(editPropertyValue.id, editPropertyName, editValueType, editPropertyValueText);
+      await fetchPropertyValues(selectedPropertyGroupId);
+      setEditPropertyValue(null);
+      setEditPropertyName('');
+      setEditValueType('text');
+      setEditPropertyValueText('');
+    } catch (err) {
+      console.error('Ошибка редактирования значения свойства:', err);
+    }
+  };
+
+  const handleDeletePropertyValue = async (id) => {
+    try {
+      await window.electronAPI.deletePropertyValue(id);
+      await fetchPropertyValues(selectedPropertyGroupId);
+    } catch (err) {
+      console.error('Ошибка удаления значения свойства:', err);
+    }
+  };
+
   const handleTabChange = (event, newValue) => {
     setTabValue(newValue);
   };
@@ -324,6 +473,7 @@ function App() {
     setEditPost(null);
     setEditTitle('');
     setEditText('');
+    setSelectedProperties([]);
     if (editButtonRef.current) {
       editButtonRef.current.focus();
     }
@@ -333,6 +483,19 @@ function App() {
     setEditGroup(null);
     setEditGroupTitle('');
     setEditGroupDescription('');
+  };
+
+  const handlePropertyGroupDialogClose = () => {
+    setEditPropertyGroup(null);
+    setEditPropertyGroupName('');
+    setEditPropertyGroupDescription('');
+  };
+
+  const handlePropertyValueDialogClose = () => {
+    setEditPropertyValue(null);
+    setEditPropertyName('');
+    setEditValueType('text');
+    setEditPropertyValueText('');
   };
 
   return (
@@ -345,6 +508,7 @@ function App() {
         <Tab label="Посты" />
         <Tab label="Шаблоны" />
         <Tab label="Группы" />
+        <Tab label="Свойства" />
       </Tabs>
 
       {/* Вкладка Посты */}
@@ -400,6 +564,25 @@ function App() {
               ))}
             </Select>
           </FormControl>
+          <FormControl fullWidth margin="normal">
+            <InputLabel>Выберите свойства</InputLabel>
+            <Select
+              multiple
+              value={selectedProperties}
+              onChange={(e) => setSelectedProperties(e.target.value)}
+              renderValue={(selected) => selected.map(id => {
+                const value = propertyValues.find(v => v.id === id);
+                return value ? `${value.property_name}: ${value.property_value}` : '';
+              }).join(', ')}
+            >
+              {propertyValues.map((value) => (
+                <MenuItem key={value.id} value={value.id}>
+                  <Checkbox checked={selectedProperties.indexOf(value.id) > -1} />
+                  {`${value.property_name}: ${value.property_value} (${value.value_type})`}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
           <Button variant="contained" onClick={handleFileDialog} style={{ margin: '10px 0' }}>
             Выбрать файлы
           </Button>
@@ -425,6 +608,7 @@ function App() {
               <TableCell>Дата создания</TableCell>
               <TableCell>Прикреплённые файлы</TableCell>
               <TableCell>Шаблоны</TableCell>
+              <TableCell>Свойства</TableCell>
               <TableCell>Действия</TableCell>
             </TableRow>
           </TableHead>
@@ -456,6 +640,15 @@ function App() {
                     ))
                   ) : (
                     'Нет шаблонов'
+                  )}
+                </TableCell>
+                <TableCell>
+                  {post.properties && post.properties.length > 0 ? (
+                    post.properties.map((prop) => (
+                      <div key={prop.id}>{`${prop.property_name}: ${prop.property_value}`}</div>
+                    ))
+                  ) : (
+                    'Нет свойств'
                   )}
                 </TableCell>
                 <TableCell>
@@ -625,6 +818,126 @@ function App() {
         </Table>
       </TabPanel>
 
+      {/* Вкладка Свойства */}
+      <TabPanel value={tabValue} index={3}>
+        <div style={{ marginBottom: '20px' }}>
+          <Typography variant="h6">Группы свойств</Typography>
+          <TextField
+            label="Название группы свойств"
+            value={newPropertyGroupName}
+            onChange={(e) => setNewPropertyGroupName(e.target.value)}
+            fullWidth
+            margin="normal"
+          />
+          <TextField
+            label="Описание группы свойств"
+            value={newPropertyGroupDescription}
+            onChange={(e) => setNewPropertyGroupDescription(e.target.value)}
+            fullWidth
+            margin="normal"
+            multiline
+            rows={2}
+          />
+          <Button variant="contained" onClick={handleAddPropertyGroup} style={{ marginTop: '10px' }}>
+            Добавить группу свойств
+          </Button>
+          <FormControl fullWidth margin="normal">
+            <InputLabel>Выберите группу свойств</InputLabel>
+            <Select
+              value={selectedPropertyGroupId}
+              onChange={(e) => {
+                setSelectedPropertyGroupId(e.target.value);
+                fetchPropertyValues(e.target.value);
+              }}
+            >
+              <MenuItem value="">Выберите группу</MenuItem>
+              {propertyGroups.map((group) => (
+                <MenuItem key={group.id} value={group.id}>
+                  {group.group_name}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        </div>
+
+        {selectedPropertyGroupId && (
+          <div>
+            <Typography variant="h6">Значения свойств</Typography>
+            <div style={{ marginBottom: '20px' }}>
+              <TextField
+                label="Название свойства"
+                value={newPropertyName}
+                onChange={(e) => setNewPropertyName(e.target.value)}
+                fullWidth
+                margin="normal"
+              />
+              <FormControl fullWidth margin="normal">
+                <InputLabel>Тип значения</InputLabel>
+                <Select value={newValueType} onChange={(e) => setNewValueType(e.target.value)}>
+                  <MenuItem value="text">Текст</MenuItem>
+                  <MenuItem value="number">Число</MenuItem>
+                  <MenuItem value="date">Дата</MenuItem>
+                  <MenuItem value="boolean">Логическое</MenuItem>
+                </Select>
+              </FormControl>
+              <TextField
+                label="Значение свойства"
+                value={newPropertyValue}
+                onChange={(e) => setNewPropertyValue(e.target.value)}
+                fullWidth
+                margin="normal"
+              />
+              <Button variant="contained" onClick={handleAddPropertyValue} style={{ marginTop: '10px' }}>
+                Добавить значение
+              </Button>
+            </div>
+
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableCell>ID</TableCell>
+                  <TableCell>Название</TableCell>
+                  <TableCell>Тип</TableCell>
+                  <TableCell>Значение</TableCell>
+                  <TableCell>Дата создания</TableCell>
+                  <TableCell>Дата обновления</TableCell>
+                  <TableCell>Действия</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {propertyValues.map((value) => (
+                  <TableRow key={value.id}>
+                    <TableCell>{value.id}</TableCell>
+                    <TableCell>{value.property_name}</TableCell>
+                    <TableCell>{value.value_type}</TableCell>
+                    <TableCell>{value.property_value}</TableCell>
+                    <TableCell>{value.created_at}</TableCell>
+                    <TableCell>{value.updated_at}</TableCell>
+                    <TableCell>
+                      <Button
+                        variant="outlined"
+                        color="primary"
+                        onClick={() => handleEditPropertyValue(value)}
+                        style={{ marginRight: '10px' }}
+                      >
+                        Редактировать
+                      </Button>
+                      <Button
+                        variant="outlined"
+                        color="error"
+                        onClick={() => handleDeletePropertyValue(value.id)}
+                      >
+                        Удалить
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+      </TabPanel>
+
       {/* Диалог редактирования поста */}
       <Dialog
         open={!!editPost}
@@ -662,6 +975,25 @@ function App() {
               {postGroups.map((group) => (
                 <MenuItem key={group.id} value={group.id}>
                   {group.title}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+          <FormControl fullWidth margin="normal">
+            <InputLabel>Выберите свойства</InputLabel>
+            <Select
+              multiple
+              value={selectedProperties}
+              onChange={(e) => setSelectedProperties(e.target.value)}
+              renderValue={(selected) => selected.map(id => {
+                const value = propertyValues.find(v => v.id === id);
+                return value ? `${value.property_name}: ${value.property_value}` : '';
+              }).join(', ')}
+            >
+              {propertyValues.map((value) => (
+                <MenuItem key={value.id} value={value.id}>
+                  <Checkbox checked={selectedProperties.indexOf(value.id) > -1} />
+                  {`${value.property_name}: ${value.property_value} (${value.value_type})`}
                 </MenuItem>
               ))}
             </Select>
@@ -743,6 +1075,79 @@ function App() {
         <DialogActions>
           <Button onClick={handleGroupDialogClose}>Отмена</Button>
           <Button onClick={handleSaveEditPostGroup} variant="contained">
+            Сохранить
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Диалог редактирования группы свойств */}
+      <Dialog
+        open={!!editPropertyGroup}
+        onClose={handlePropertyGroupDialogClose}
+        disableRestoreFocus
+      >
+        <DialogTitle>Редактировать группу свойств</DialogTitle>
+        <DialogContent>
+          <TextField
+            label="Название группы свойств"
+            value={editPropertyGroupName}
+            onChange={(e) => setEditPropertyGroupName(e.target.value)}
+            fullWidth
+            margin="normal"
+          />
+          <TextField
+            label="Описание группы свойств"
+            value={editPropertyGroupDescription}
+            onChange={(e) => setEditPropertyGroupDescription(e.target.value)}
+            fullWidth
+            margin="normal"
+            multiline
+            rows={2}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handlePropertyGroupDialogClose}>Отмена</Button>
+          <Button onClick={handleSaveEditPropertyGroup} variant="contained">
+            Сохранить
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Диалог редактирования значения свойства */}
+      <Dialog
+        open={!!editPropertyValue}
+        onClose={handlePropertyValueDialogClose}
+        disableRestoreFocus
+      >
+        <DialogTitle>Редактировать значение свойства</DialogTitle>
+        <DialogContent>
+          <TextField
+            label="Название свойства"
+            value={editPropertyName}
+            onChange={(e) => setEditPropertyName(e.target.value)}
+            fullWidth
+            margin="normal"
+          />
+          <FormControl fullWidth margin="normal">
+            <InputLabel>Тип значения</InputLabel>
+            <Select value={editValueType} onChange={(e) => setEditValueType(e.target.value)}>
+              <MenuItem value="text">Текст</MenuItem>
+              <MenuItem value="number">Число</MenuItem>
+              <MenuItem value="date">Дата</MenuItem>
+              <MenuItem value="boolean">Логическое</MenuItem>
+            </Select>
+          </FormControl>
+          <TextField
+            label="Значение свойства"
+            value={editPropertyValueText}
+            onChange={(e) => setEditPropertyValueText(e.target.value)}
+            fullWidth
+            margin="normal"
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handlePropertyValueDialogClose}>Отмена</Button>
+          <Button onClick={handleSaveEditPropertyValue} variant="contained">
             Сохранить
           </Button>
         </DialogActions>

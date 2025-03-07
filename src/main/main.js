@@ -1,7 +1,7 @@
 import { app, BrowserWindow, ipcMain, dialog } from 'electron';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { db, addPost, getPosts, updatePost, deletePost, addAttachedFile, getAttachedFiles, addTemplate, getTemplates, updateTemplate, deleteTemplate, addPostTemplate, getPostTemplates, removePostTemplate, addPostGroup, getPostGroups, updatePostGroup, deletePostGroup } from '../db/database.js';
+import { db, addPost, getPosts, updatePost, deletePost, addAttachedFile, getAttachedFiles, addTemplate, getTemplates, updateTemplate, deleteTemplate, addPostTemplate, getPostTemplates, removePostTemplate, addPostGroup, getPostGroups, updatePostGroup, deletePostGroup, addPropertyGroup, getPropertyGroups, updatePropertyGroup, deletePropertyGroup, addPropertyValue, getPropertyValues, updatePropertyValue, deletePropertyValue, addPostProperty, getPostProperties, removePostProperty } from '../db/database.js';
 import fs from 'fs';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -273,7 +273,7 @@ app.whenReady().then(() => {
     });
   });
 
-  // IPC-обработчики для групп
+  // IPC-обработчики для групп постов
   ipcMain.handle('add-post-group', async (event, title, groupDescription) => {
     return new Promise((resolve, reject) => {
       addPostGroup(title, groupDescription, (err, id) => {
@@ -313,6 +313,141 @@ app.whenReady().then(() => {
   ipcMain.handle('delete-post-group', async (event, id) => {
     return new Promise((resolve, reject) => {
       deletePostGroup(id, (err) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve();
+        }
+      });
+    });
+  });
+
+  // IPC-обработчики для групп свойств
+  ipcMain.handle('add-property-group', async (event, groupName, groupDescription) => {
+    return new Promise((resolve, reject) => {
+      addPropertyGroup(groupName, groupDescription, (err, id) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve(id);
+        }
+      });
+    });
+  });
+
+  ipcMain.handle('get-property-groups', async () => {
+    return new Promise((resolve, reject) => {
+      getPropertyGroups((err, rows) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve(rows);
+        }
+      });
+    });
+  });
+
+  ipcMain.handle('update-property-group', async (event, id, groupName, groupDescription) => {
+    return new Promise((resolve, reject) => {
+      updatePropertyGroup(id, groupName, groupDescription, (err) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve();
+        }
+      });
+    });
+  });
+
+  ipcMain.handle('delete-property-group', async (event, id) => {
+    return new Promise((resolve, reject) => {
+      deletePropertyGroup(id, (err) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve();
+        }
+      });
+    });
+  });
+
+  // IPC-обработчики для значений свойств
+  ipcMain.handle('add-property-value', async (event, groupId, propertyName, valueType, propertyValue) => {
+    return new Promise((resolve, reject) => {
+      addPropertyValue(groupId, propertyName, valueType, propertyValue, (err, id) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve(id);
+        }
+      });
+    });
+  });
+
+  ipcMain.handle('get-property-values', async (event, groupId) => {
+    return new Promise((resolve, reject) => {
+      getPropertyValues(groupId, (err, rows) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve(rows);
+        }
+      });
+    });
+  });
+
+  ipcMain.handle('update-property-value', async (event, id, propertyName, valueType, propertyValue) => {
+    return new Promise((resolve, reject) => {
+      updatePropertyValue(id, propertyName, valueType, propertyValue, (err) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve();
+        }
+      });
+    });
+  });
+
+  ipcMain.handle('delete-property-value', async (event, id) => {
+    return new Promise((resolve, reject) => {
+      deletePropertyValue(id, (err) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve();
+        }
+      });
+    });
+  });
+
+  // IPC-обработчики для свойств постов
+  ipcMain.handle('add-post-property', async (event, postId, valueId) => {
+    return new Promise((resolve, reject) => {
+      addPostProperty(postId, valueId, (err) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve();
+        }
+      });
+    });
+  });
+
+  ipcMain.handle('get-post-properties', async (event, postId) => {
+    return new Promise((resolve, reject) => {
+      getPostProperties(postId, (err, rows) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve(rows);
+        }
+      });
+    });
+  });
+
+  ipcMain.handle('remove-post-property', async (event, postId, valueId) => {
+    return new Promise((resolve, reject) => {
+      removePostProperty(postId, valueId, (err) => {
         if (err) {
           reject(err);
         } else {
