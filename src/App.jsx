@@ -13,8 +13,6 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  Tabs,
-  Tab,
   Box,
   Select,
   MenuItem,
@@ -23,25 +21,20 @@ import {
   Checkbox,
   FormControlLabel,
   Grid,
+  List,
+  ListItem,
+  ListItemIcon,
+  ListItemText,
 } from '@mui/material';
-
-function TabPanel(props) {
-  const { children, value, index, ...other } = props;
-  return (
-    <div
-      role="tabpanel"
-      hidden={value !== index}
-      id={`tabpanel-${index}`}
-      aria-labelledby={`tab-${index}`}
-      {...other}
-    >
-      {value === index && <Box sx={{ p: 3 }}>{children}</Box>}
-    </div>
-  );
-}
+import {
+  Article as ArticleIcon,
+  Description as DescriptionIcon,
+  Group as GroupIcon,
+  Settings as SettingsIcon,
+} from '@mui/icons-material';
 
 function App() {
-  const [tabValue, setTabValue] = useState(0);
+  const [selectedTab, setSelectedTab] = useState('posts');
 
   // Состояние для постов
   const [posts, setPosts] = useState([]);
@@ -466,10 +459,6 @@ function App() {
     }
   };
 
-  const handleTabChange = (event, newValue) => {
-    setTabValue(newValue);
-  };
-
   const handleDialogClose = () => {
     setEditPost(null);
     setEditTitle('');
@@ -499,350 +488,326 @@ function App() {
     setEditPropertyValueText('');
   };
 
+  // Вкладки для бокового меню
+  const tabs = [
+    { id: 'posts', label: 'Посты', icon: <ArticleIcon /> },
+    { id: 'templates', label: 'Шаблоны', icon: <DescriptionIcon /> },
+    { id: 'groups', label: 'Группы', icon: <GroupIcon /> },
+    { id: 'properties', label: 'Свойства', icon: <SettingsIcon /> },
+  ];
+
   return (
-    <Container>
-      <Typography variant="h4" gutterBottom>
-        Telegram CMS
-      </Typography>
-
-      <Tabs value={tabValue} onChange={handleTabChange} centered>
-        <Tab label="Посты" />
-        <Tab label="Шаблоны" />
-        <Tab label="Группы" />
-        <Tab label="Свойства" />
-      </Tabs>
-
-      {/* Вкладка Посты */}
-      <TabPanel value={tabValue} index={0}>
-        <div style={{ marginBottom: '20px' }}>
-          <TextField
-            label="Заголовок поста"
-            value={newPostTitle}
-            onChange={(e) => setNewPostTitle(e.target.value)}
-            fullWidth
-            margin="normal"
-          />
-          <TextField
-            label="Текст поста"
-            value={newPostText}
-            onChange={(e) => setNewPostText(e.target.value)}
-            fullWidth
-            margin="normal"
-            multiline
-            rows={4}
-          />
-          <FormControl fullWidth margin="normal">
-            <InputLabel>Выберите группу</InputLabel>
-            <Select
-              value={newPostGroupId}
-              onChange={(e) => setNewPostGroupId(e.target.value)}
-            >
-              <MenuItem value="">Без группы</MenuItem>
-              {postGroups.map((group) => (
-                <MenuItem key={group.id} value={group.id}>
-                  {group.title}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-          <FormControl fullWidth margin="normal">
-            <InputLabel>Выберите шаблон</InputLabel>
-            <Select
-              value={selectedTemplate}
-              onChange={(e) => {
-                setSelectedTemplate(e.target.value);
-                const template = templates.find(t => t.id === e.target.value);
-                if (template) {
-                  handleApplyTemplate(template.template_text);
-                }
+    <Container sx={{ display: 'flex', height: '100vh', padding: 0 }}>
+      {/* Боковая панель */}
+      <Box
+        sx={{
+          width: 200,
+          bgcolor: '#f5f5f5',
+          borderRight: '1px solid #ddd',
+          height: '100%',
+          overflow: 'auto',
+        }}
+      >
+        <Typography variant="h6" sx={{ p: 2, borderBottom: '1px solid #ddd' }}>
+          Telegram CMS
+        </Typography>
+        <List>
+          {tabs.map((tab) => (
+            <ListItem
+              key={tab.id}
+              button
+              onClick={() => setSelectedTab(tab.id)}
+              sx={{
+                bgcolor: selectedTab === tab.id ? '#e0e0e0' : 'transparent',
+                '&:hover': {
+                  bgcolor: '#e0e0e0',
+                },
               }}
             >
-              <MenuItem value="">Нет шаблона</MenuItem>
-              {templates.map((template) => (
-                <MenuItem key={template.id} value={template.id}>
-                  {template.template_name}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-          <FormControl fullWidth margin="normal">
-            <InputLabel>Выберите свойства</InputLabel>
-            <Select
-              multiple
-              value={selectedProperties}
-              onChange={(e) => setSelectedProperties(e.target.value)}
-              renderValue={(selected) => selected.map(id => {
-                const value = propertyValues.find(v => v.id === id);
-                return value ? `${value.property_name}: ${value.property_value}` : '';
-              }).join(', ')}
-            >
-              {propertyValues.map((value) => (
-                <MenuItem key={value.id} value={value.id}>
-                  <Checkbox checked={selectedProperties.indexOf(value.id) > -1} />
-                  {`${value.property_name}: ${value.property_value} (${value.value_type})`}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-          <Button variant="contained" onClick={handleFileDialog} style={{ margin: '10px 0' }}>
-            Выбрать файлы
-          </Button>
+              <ListItemIcon>{tab.icon}</ListItemIcon>
+              <ListItemText primary={tab.label} />
+            </ListItem>
+          ))}
+        </List>
+      </Box>
+
+      {/* Основная область */}
+      <Box sx={{ flexGrow: 1, p: 3, overflow: 'auto' }}>
+        {/* Вкладка Посты */}
+        {selectedTab === 'posts' && (
           <div>
-            {selectedFiles.map((file, index) => (
-              <div key={index}>{file.name}</div>
-            ))}
-          </div>
-          <Button variant="contained" onClick={handleAddPost}>
-            Добавить пост
-          </Button>
-        </div>
-
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell>ID</TableCell>
-              <TableCell>Заголовок</TableCell>
-              <TableCell>Текст</TableCell>
-              <TableCell>Группа</TableCell>
-              <TableCell>Опубликовано</TableCell>
-              <TableCell>Дата публикации</TableCell>
-              <TableCell>Дата создания</TableCell>
-              <TableCell>Прикреплённые файлы</TableCell>
-              <TableCell>Шаблоны</TableCell>
-              <TableCell>Свойства</TableCell>
-              <TableCell>Действия</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {posts.map((post) => (
-              <TableRow key={post.id}>
-                <TableCell>{post.id}</TableCell>
-                <TableCell>{post.title || '-'}</TableCell>
-                <TableCell>{post.text}</TableCell>
-                <TableCell>
-                  {post.group_id ? postGroups.find(g => g.id === post.group_id)?.title || 'Неизвестно' : '-'}
-                </TableCell>
-                <TableCell>{post.is_published ? 'Да' : 'Нет'}</TableCell>
-                <TableCell>{post.published_at || '-'}</TableCell>
-                <TableCell>{post.created_at}</TableCell>
-                <TableCell>
-                  {post.attachedFiles && post.attachedFiles.length > 0 ? (
-                    post.attachedFiles.map((file) => (
-                      <div key={file.id}>{file.file_path}</div>
-                    ))
-                  ) : (
-                    'Нет файлов'
-                  )}
-                </TableCell>
-                <TableCell>
-                  {post.templates && post.templates.length > 0 ? (
-                    post.templates.map((template) => (
-                      <div key={template.id}>{template.template_name}</div>
-                    ))
-                  ) : (
-                    'Нет шаблонов'
-                  )}
-                </TableCell>
-                <TableCell>
-                  {post.properties && post.properties.length > 0 ? (
-                    post.properties.map((prop) => (
-                      <div key={prop.id}>{`${prop.property_name}: ${prop.property_value}`}</div>
-                    ))
-                  ) : (
-                    'Нет свойств'
-                  )}
-                </TableCell>
-                <TableCell>
-                  <Button
-                    variant="outlined"
-                    color="primary"
-                    onClick={() => handleEditPost(post)}
-                    style={{ marginRight: '10px' }}
-                    ref={(el) => {
-                      if (editPost?.id === post.id) editButtonRef.current = el;
-                    }}
-                  >
-                    Редактировать
-                  </Button>
-                  <Button
-                    variant="outlined"
-                    color="error"
-                    onClick={() => handleDeletePost(post.id)}
-                  >
-                    Удалить
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TabPanel>
-
-      {/* Вкладка Шаблоны */}
-      <TabPanel value={tabValue} index={1}>
-        <div style={{ marginBottom: '20px' }}>
-          <TextField
-            label="Название шаблона"
-            value={newTemplateName}
-            onChange={(e) => setNewTemplateName(e.target.value)}
-            fullWidth
-            margin="normal"
-          />
-          <TextField
-            label="Текст шаблона"
-            value={newTemplateText}
-            onChange={(e) => setNewTemplateText(e.target.value)}
-            fullWidth
-            margin="normal"
-            multiline
-            rows={4}
-          />
-          <TextField
-            label="Описание шаблона"
-            value={newTemplateDescription}
-            onChange={(e) => setNewTemplateDescription(e.target.value)}
-            fullWidth
-            margin="normal"
-          />
-          <Button variant="contained" onClick={handleAddTemplate}>
-            Добавить шаблон
-          </Button>
-        </div>
-
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell>ID</TableCell>
-              <TableCell>Название</TableCell>
-              <TableCell>Текст</TableCell>
-              <TableCell>Описание</TableCell>
-              <TableCell>Дата создания</TableCell>
-              <TableCell>Дата обновления</TableCell>
-              <TableCell>Действия</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {templates.map((template) => (
-              <TableRow key={template.id}>
-                <TableCell>{template.id}</TableCell>
-                <TableCell>{template.template_name}</TableCell>
-                <TableCell>{template.template_text}</TableCell>
-                <TableCell>{template.description || '-'}</TableCell>
-                <TableCell>{template.created_at}</TableCell>
-                <TableCell>{template.updated_at}</TableCell>
-                <TableCell>
-                  <Button
-                    variant="outlined"
-                    color="primary"
-                    onClick={() => handleEditTemplate(template)}
-                    style={{ marginRight: '10px' }}
-                  >
-                    Редактировать
-                  </Button>
-                  <Button
-                    variant="outlined"
-                    color="error"
-                    onClick={() => handleDeleteTemplate(template.id)}
-                  >
-                    Удалить
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TabPanel>
-
-      {/* Вкладка Группы */}
-      <TabPanel value={tabValue} index={2}>
-        <div style={{ marginBottom: '20px' }}>
-          <TextField
-            label="Название группы"
-            value={newGroupTitle}
-            onChange={(e) => setNewGroupTitle(e.target.value)}
-            fullWidth
-            margin="normal"
-          />
-          <TextField
-            label="Описание группы"
-            value={newGroupDescription}
-            onChange={(e) => setNewGroupDescription(e.target.value)}
-            fullWidth
-            margin="normal"
-            multiline
-            rows={2}
-          />
-          <Button variant="contained" onClick={handleAddPostGroup} style={{ marginTop: '10px' }}>
-            Добавить группу
-          </Button>
-        </div>
-
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell>ID</TableCell>
-              <TableCell>Название</TableCell>
-              <TableCell>Описание</TableCell>
-              <TableCell>Дата создания</TableCell>
-              <TableCell>Дата обновления</TableCell>
-              <TableCell>Действия</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {postGroups.map((group) => (
-              <TableRow key={group.id}>
-                <TableCell>{group.id}</TableCell>
-                <TableCell>{group.title}</TableCell>
-                <TableCell>{group.group_description || '-'}</TableCell>
-                <TableCell>{group.created_at}</TableCell>
-                <TableCell>{group.updated_at}</TableCell>
-                <TableCell>
-                  <Button
-                    variant="outlined"
-                    color="primary"
-                    onClick={() => handleEditPostGroup(group)}
-                    style={{ marginRight: '10px' }}
-                  >
-                    Редактировать
-                  </Button>
-                  <Button
-                    variant="outlined"
-                    color="error"
-                    onClick={() => handleDeletePostGroup(group.id)}
-                  >
-                    Удалить
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TabPanel>
-
-      {/* Вкладка Свойства */}
-      <TabPanel value={tabValue} index={3}>
-        <Grid container spacing={3}>
-          {/* Левая часть: Группы свойств */}
-          <Grid item xs={6}>
-            <Typography variant="h6">Группы свойств</Typography>
+            <Typography variant="h5" gutterBottom>
+              Посты
+            </Typography>
             <div style={{ marginBottom: '20px' }}>
               <TextField
-                label="Название группы свойств"
-                value={newPropertyGroupName}
-                onChange={(e) => setNewPropertyGroupName(e.target.value)}
+                label="Заголовок поста"
+                value={newPostTitle}
+                onChange={(e) => setNewPostTitle(e.target.value)}
                 fullWidth
                 margin="normal"
               />
               <TextField
-                label="Описание группы свойств"
-                value={newPropertyGroupDescription}
-                onChange={(e) => setNewPropertyGroupDescription(e.target.value)}
+                label="Текст поста"
+                value={newPostText}
+                onChange={(e) => setNewPostText(e.target.value)}
+                fullWidth
+                margin="normal"
+                multiline
+                rows={4}
+              />
+              <FormControl fullWidth margin="normal">
+                <InputLabel>Выберите группу</InputLabel>
+                <Select
+                  value={newPostGroupId}
+                  onChange={(e) => setNewPostGroupId(e.target.value)}
+                >
+                  <MenuItem value="">Без группы</MenuItem>
+                  {postGroups.map((group) => (
+                    <MenuItem key={group.id} value={group.id}>
+                      {group.title}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+              <FormControl fullWidth margin="normal">
+                <InputLabel>Выберите шаблон</InputLabel>
+                <Select
+                  value={selectedTemplate}
+                  onChange={(e) => {
+                    setSelectedTemplate(e.target.value);
+                    const template = templates.find(t => t.id === e.target.value);
+                    if (template) {
+                      handleApplyTemplate(template.template_text);
+                    }
+                  }}
+                >
+                  <MenuItem value="">Нет шаблона</MenuItem>
+                  {templates.map((template) => (
+                    <MenuItem key={template.id} value={template.id}>
+                      {template.template_name}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+              <FormControl fullWidth margin="normal">
+                <InputLabel>Выберите свойства</InputLabel>
+                <Select
+                  multiple
+                  value={selectedProperties}
+                  onChange={(e) => setSelectedProperties(e.target.value)}
+                  renderValue={(selected) => selected.map(id => {
+                    const value = propertyValues.find(v => v.id === id);
+                    return value ? `${value.property_name}: ${value.property_value}` : '';
+                  }).join(', ')}
+                >
+                  {propertyValues.map((value) => (
+                    <MenuItem key={value.id} value={value.id}>
+                      <Checkbox checked={selectedProperties.indexOf(value.id) > -1} />
+                      {`${value.property_name}: ${value.property_value} (${value.value_type})`}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+              <Button variant="contained" onClick={handleFileDialog} style={{ margin: '10px 0' }}>
+                Выбрать файлы
+              </Button>
+              <div>
+                {selectedFiles.map((file, index) => (
+                  <div key={index}>{file.name}</div>
+                ))}
+              </div>
+              <Button variant="contained" onClick={handleAddPost}>
+                Добавить пост
+              </Button>
+            </div>
+
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableCell>ID</TableCell>
+                  <TableCell>Заголовок</TableCell>
+                  <TableCell>Текст</TableCell>
+                  <TableCell>Группа</TableCell>
+                  <TableCell>Опубликовано</TableCell>
+                  <TableCell>Дата публикации</TableCell>
+                  <TableCell>Дата создания</TableCell>
+                  <TableCell>Прикреплённые файлы</TableCell>
+                  <TableCell>Шаблоны</TableCell>
+                  <TableCell>Свойства</TableCell>
+                  <TableCell>Действия</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {posts.map((post) => (
+                  <TableRow key={post.id}>
+                    <TableCell>{post.id}</TableCell>
+                    <TableCell>{post.title || '-'}</TableCell>
+                    <TableCell>{post.text}</TableCell>
+                    <TableCell>
+                      {post.group_id ? postGroups.find(g => g.id === post.group_id)?.title || 'Неизвестно' : '-'}
+                    </TableCell>
+                    <TableCell>{post.is_published ? 'Да' : 'Нет'}</TableCell>
+                    <TableCell>{post.published_at || '-'}</TableCell>
+                    <TableCell>{post.created_at}</TableCell>
+                    <TableCell>
+                      {post.attachedFiles && post.attachedFiles.length > 0 ? (
+                        post.attachedFiles.map((file) => (
+                          <div key={file.id}>{file.file_path}</div>
+                        ))
+                      ) : (
+                        'Нет файлов'
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {post.templates && post.templates.length > 0 ? (
+                        post.templates.map((template) => (
+                          <div key={template.id}>{template.template_name}</div>
+                        ))
+                      ) : (
+                        'Нет шаблонов'
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {post.properties && post.properties.length > 0 ? (
+                        post.properties.map((prop) => (
+                          <div key={prop.id}>{`${prop.property_name}: ${prop.property_value}`}</div>
+                        ))
+                      ) : (
+                        'Нет свойств'
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <Button
+                        variant="outlined"
+                        color="primary"
+                        onClick={() => handleEditPost(post)}
+                        style={{ marginRight: '10px' }}
+                        ref={(el) => {
+                          if (editPost?.id === post.id) editButtonRef.current = el;
+                        }}
+                      >
+                        Редактировать
+                      </Button>
+                      <Button
+                        variant="outlined"
+                        color="error"
+                        onClick={() => handleDeletePost(post.id)}
+                      >
+                        Удалить
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+
+        {/* Вкладка Шаблоны */}
+        {selectedTab === 'templates' && (
+          <div>
+            <Typography variant="h5" gutterBottom>
+              Шаблоны
+            </Typography>
+            <div style={{ marginBottom: '20px' }}>
+              <TextField
+                label="Название шаблона"
+                value={newTemplateName}
+                onChange={(e) => setNewTemplateName(e.target.value)}
+                fullWidth
+                margin="normal"
+              />
+              <TextField
+                label="Текст шаблона"
+                value={newTemplateText}
+                onChange={(e) => setNewTemplateText(e.target.value)}
+                fullWidth
+                margin="normal"
+                multiline
+                rows={4}
+              />
+              <TextField
+                label="Описание шаблона"
+                value={newTemplateDescription}
+                onChange={(e) => setNewTemplateDescription(e.target.value)}
+                fullWidth
+                margin="normal"
+              />
+              <Button variant="contained" onClick={handleAddTemplate}>
+                Добавить шаблон
+              </Button>
+            </div>
+
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableCell>ID</TableCell>
+                  <TableCell>Название</TableCell>
+                  <TableCell>Текст</TableCell>
+                  <TableCell>Описание</TableCell>
+                  <TableCell>Дата создания</TableCell>
+                  <TableCell>Дата обновления</TableCell>
+                  <TableCell>Действия</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {templates.map((template) => (
+                  <TableRow key={template.id}>
+                    <TableCell>{template.id}</TableCell>
+                    <TableCell>{template.template_name}</TableCell>
+                    <TableCell>{template.template_text}</TableCell>
+                    <TableCell>{template.description || '-'}</TableCell>
+                    <TableCell>{template.created_at}</TableCell>
+                    <TableCell>{template.updated_at}</TableCell>
+                    <TableCell>
+                      <Button
+                        variant="outlined"
+                        color="primary"
+                        onClick={() => handleEditTemplate(template)}
+                        style={{ marginRight: '10px' }}
+                      >
+                        Редактировать
+                      </Button>
+                      <Button
+                        variant="outlined"
+                        color="error"
+                        onClick={() => handleDeleteTemplate(template.id)}
+                      >
+                        Удалить
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+
+        {/* Вкладка Группы */}
+        {selectedTab === 'groups' && (
+          <div>
+            <Typography variant="h5" gutterBottom>
+              Группы
+            </Typography>
+            <div style={{ marginBottom: '20px' }}>
+              <TextField
+                label="Название группы"
+                value={newGroupTitle}
+                onChange={(e) => setNewGroupTitle(e.target.value)}
+                fullWidth
+                margin="normal"
+              />
+              <TextField
+                label="Описание группы"
+                value={newGroupDescription}
+                onChange={(e) => setNewGroupDescription(e.target.value)}
                 fullWidth
                 margin="normal"
                 multiline
                 rows={2}
               />
-              <Button variant="contained" onClick={handleAddPropertyGroup} style={{ marginTop: '10px' }}>
+              <Button variant="contained" onClick={handleAddPostGroup} style={{ marginTop: '10px' }}>
                 Добавить группу
               </Button>
             </div>
@@ -859,16 +824,10 @@ function App() {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {propertyGroups.map((group) => (
-                  <TableRow
-                    key={group.id}
-                    onClick={() => setSelectedPropertyGroupId(group.id)}
-                    selected={selectedPropertyGroupId === group.id}
-                    hover
-                    style={{ cursor: 'pointer' }}
-                  >
+                {postGroups.map((group) => (
+                  <TableRow key={group.id}>
                     <TableCell>{group.id}</TableCell>
-                    <TableCell>{group.group_name}</TableCell>
+                    <TableCell>{group.title}</TableCell>
                     <TableCell>{group.group_description || '-'}</TableCell>
                     <TableCell>{group.created_at}</TableCell>
                     <TableCell>{group.updated_at}</TableCell>
@@ -876,10 +835,7 @@ function App() {
                       <Button
                         variant="outlined"
                         color="primary"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleEditPropertyGroup(group);
-                        }}
+                        onClick={() => handleEditPostGroup(group)}
                         style={{ marginRight: '10px' }}
                       >
                         Редактировать
@@ -887,10 +843,7 @@ function App() {
                       <Button
                         variant="outlined"
                         color="error"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDeletePropertyGroup(group.id);
-                        }}
+                        onClick={() => handleDeletePostGroup(group.id)}
                       >
                         Удалить
                       </Button>
@@ -899,39 +852,38 @@ function App() {
                 ))}
               </TableBody>
             </Table>
-          </Grid>
+          </div>
+        )}
 
-          {/* Правая часть: Значения свойств */}
-          <Grid item xs={6}>
-            {selectedPropertyGroupId && (
-              <Box>
-                <Typography variant="h6">Свойства группы: {propertyGroups.find(g => g.id === selectedPropertyGroupId)?.group_name}</Typography>
+        {/* Вкладка Свойства */}
+        {selectedTab === 'properties' && (
+          <div>
+            <Typography variant="h5" gutterBottom>
+              Свойства
+            </Typography>
+            <Grid container spacing={3}>
+              {/* Левая часть: Группы свойств */}
+              <Grid item xs={6}>
+                <Typography variant="h6">Группы свойств</Typography>
                 <div style={{ marginBottom: '20px' }}>
                   <TextField
-                    label="Название свойства"
-                    value={newPropertyName}
-                    onChange={(e) => setNewPropertyName(e.target.value)}
+                    label="Название группы свойств"
+                    value={newPropertyGroupName}
+                    onChange={(e) => setNewPropertyGroupName(e.target.value)}
                     fullWidth
                     margin="normal"
                   />
-                  <FormControl fullWidth margin="normal">
-                    <InputLabel>Тип значения</InputLabel>
-                    <Select value={newValueType} onChange={(e) => setNewValueType(e.target.value)}>
-                      <MenuItem value="text">Текст</MenuItem>
-                      <MenuItem value="number">Число</MenuItem>
-                      <MenuItem value="date">Дата</MenuItem>
-                      <MenuItem value="boolean">Логическое</MenuItem>
-                    </Select>
-                  </FormControl>
                   <TextField
-                    label="Значение свойства"
-                    value={newPropertyValue}
-                    onChange={(e) => setNewPropertyValue(e.target.value)}
+                    label="Описание группы свойств"
+                    value={newPropertyGroupDescription}
+                    onChange={(e) => setNewPropertyGroupDescription(e.target.value)}
                     fullWidth
                     margin="normal"
+                    multiline
+                    rows={2}
                   />
-                  <Button variant="contained" onClick={handleAddPropertyValue} style={{ marginTop: '10px' }}>
-                    Добавить значение
+                  <Button variant="contained" onClick={handleAddPropertyGroup} style={{ marginTop: '10px' }}>
+                    Добавить группу
                   </Button>
                 </div>
 
@@ -940,27 +892,34 @@ function App() {
                     <TableRow>
                       <TableCell>ID</TableCell>
                       <TableCell>Название</TableCell>
-                      <TableCell>Тип</TableCell>
-                      <TableCell>Значение</TableCell>
+                      <TableCell>Описание</TableCell>
                       <TableCell>Дата создания</TableCell>
                       <TableCell>Дата обновления</TableCell>
                       <TableCell>Действия</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {propertyValues.map((value) => (
-                      <TableRow key={value.id}>
-                        <TableCell>{value.id}</TableCell>
-                        <TableCell>{value.property_name}</TableCell>
-                        <TableCell>{value.value_type}</TableCell>
-                        <TableCell>{value.property_value}</TableCell>
-                        <TableCell>{value.created_at}</TableCell>
-                        <TableCell>{value.updated_at}</TableCell>
+                    {propertyGroups.map((group) => (
+                      <TableRow
+                        key={group.id}
+                        onClick={() => setSelectedPropertyGroupId(group.id)}
+                        selected={selectedPropertyGroupId === group.id}
+                        hover
+                        style={{ cursor: 'pointer' }}
+                      >
+                        <TableCell>{group.id}</TableCell>
+                        <TableCell>{group.group_name}</TableCell>
+                        <TableCell>{group.group_description || '-'}</TableCell>
+                        <TableCell>{group.created_at}</TableCell>
+                        <TableCell>{group.updated_at}</TableCell>
                         <TableCell>
                           <Button
                             variant="outlined"
                             color="primary"
-                            onClick={() => handleEditPropertyValue(value)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleEditPropertyGroup(group);
+                            }}
                             style={{ marginRight: '10px' }}
                           >
                             Редактировать
@@ -968,7 +927,10 @@ function App() {
                           <Button
                             variant="outlined"
                             color="error"
-                            onClick={() => handleDeletePropertyValue(value.id)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeletePropertyGroup(group.id);
+                            }}
                           >
                             Удалить
                           </Button>
@@ -977,11 +939,91 @@ function App() {
                     ))}
                   </TableBody>
                 </Table>
-              </Box>
-            )}
-          </Grid>
-        </Grid>
-      </TabPanel>
+              </Grid>
+
+              {/* Правая часть: Значения свойств */}
+              <Grid item xs={6}>
+                {selectedPropertyGroupId && (
+                  <Box>
+                    <Typography variant="h6">Свойства группы: {propertyGroups.find(g => g.id === selectedPropertyGroupId)?.group_name}</Typography>
+                    <div style={{ marginBottom: '20px' }}>
+                      <TextField
+                        label="Название свойства"
+                        value={newPropertyName}
+                        onChange={(e) => setNewPropertyName(e.target.value)}
+                        fullWidth
+                        margin="normal"
+                      />
+                      <FormControl fullWidth margin="normal">
+                        <InputLabel>Тип значения</InputLabel>
+                        <Select value={newValueType} onChange={(e) => setNewValueType(e.target.value)}>
+                          <MenuItem value="text">Текст</MenuItem>
+                          <MenuItem value="number">Число</MenuItem>
+                          <MenuItem value="date">Дата</MenuItem>
+                          <MenuItem value="boolean">Логическое</MenuItem>
+                        </Select>
+                      </FormControl>
+                      <TextField
+                        label="Значение свойства"
+                        value={newPropertyValue}
+                        onChange={(e) => setNewPropertyValue(e.target.value)}
+                        fullWidth
+                        margin="normal"
+                      />
+                      <Button variant="contained" onClick={handleAddPropertyValue} style={{ marginTop: '10px' }}>
+                        Добавить значение
+                      </Button>
+                    </div>
+
+                    <Table>
+                      <TableHead>
+                        <TableRow>
+                          <TableCell>ID</TableCell>
+                          <TableCell>Название</TableCell>
+                          <TableCell>Тип</TableCell>
+                          <TableCell>Значение</TableCell>
+                          <TableCell>Дата создания</TableCell>
+                          <TableCell>Дата обновления</TableCell>
+                          <TableCell>Действия</TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {propertyValues.map((value) => (
+                          <TableRow key={value.id}>
+                            <TableCell>{value.id}</TableCell>
+                            <TableCell>{value.property_name}</TableCell>
+                            <TableCell>{value.value_type}</TableCell>
+                            <TableCell>{value.property_value}</TableCell>
+                            <TableCell>{value.created_at}</TableCell>
+                            <TableCell>{value.updated_at}</TableCell>
+                            <TableCell>
+                              <Button
+                                variant="outlined"
+                                color="primary"
+                                onClick={() => handleEditPropertyValue(value)}
+                                style={{ marginRight: '10px' }}
+                              >
+                                Редактировать
+                              </Button>
+                              <Button
+                                variant="outlined"
+                                color="error"
+                                onClick={() => handleDeletePropertyValue(value.id)}
+                              >
+                                Удалить
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </Box>
+                )}
+              </Grid>
+            </Grid>
+          </div>
+        )}
+      </Box>
 
       {/* Диалог редактирования поста */}
       <Dialog
