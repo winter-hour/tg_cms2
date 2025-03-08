@@ -93,9 +93,9 @@ function App() {
   const editButtonRef = useRef(null);
 
   // Константы для цветов
-  const ICON_COLOR_INACTIVE = '#bdbdbd'; // Цвет иконок в неактивном состоянии
-  const ICON_COLOR_ACTIVE = '#757575';   // Цвет иконок в активном состоянии
-  const ICON_COLOR_HOVER = '#757575';    // Цвет иконок при наведении
+  const ICON_COLOR_INACTIVE = '#8e8e8e'; // Цвет иконок в неактивном состоянии
+  const ICON_COLOR_ACTIVE = '#3b3b3b';   // Цвет иконок в активном состоянии
+  const ICON_COLOR_HOVER = '#1a1a1a';    // Цвет иконок при наведении
 
   useEffect(() => {
     fetchPosts();
@@ -508,7 +508,7 @@ function App() {
 
   // Фиксированные размеры боковой панели
   const SIDEBAR_CLOSED_WIDTH = 56; // Ширина в закрытом состоянии (стандарт для иконок Material UI)
-  const SIDEBAR_OPEN_WIDTH = 250; // Ширина в раскрытом состоянии
+  const SIDEBAR_OPEN_WIDTH = 140; // Ширина в раскрытом состоянии
   const SIDEBAR_MARGIN = 10; // Минимальный отступ слева для содержимого
   const TITLE_BAR_HEIGHT = 32; // Высота титульной панели
 
@@ -1146,7 +1146,7 @@ function App() {
               fullWidth
               margin="normal"
               multiline
-              rows={4}
+              rows={5}
               autoFocus
             />
             <FormControl fullWidth margin="normal">
