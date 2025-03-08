@@ -1,46 +1,38 @@
-import { useState, useEffect, useRef } from 'react';
+// src/App.jsx
+import React, { useState, useEffect, useRef } from 'react';
+import { ThemeProvider } from '@mui/material/styles';
 import {
-  Button,
+  Box,
+  CssBaseline,
   TextField,
+  Button,
   Table,
   TableBody,
   TableCell,
+  TableContainer,
   TableHead,
   TableRow,
+  Paper,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
   Typography,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
-  Box,
-  Select,
-  MenuItem,
-  FormControl,
-  InputLabel,
   Checkbox,
   Grid,
-  List,
-  ListItem,
-  ListItemIcon,
-  ListItemText,
-  IconButton,
 } from '@mui/material';
-import {
-  Article as ArticleIcon,
-  Description as DescriptionIcon,
-  Group as GroupIcon,
-  Settings as SettingsIcon,
-  KeyboardArrowRight as KeyboardArrowRightIcon,
-  KeyboardArrowLeft as KeyboardArrowLeftIcon,
-} from '@mui/icons-material';
-import { ThemeProvider } from '@mui/material/styles'; // Добавляем импорт ThemeProvider
-import theme from './theme'; // Импортируем тему из src/theme.js
+import theme from './theme';
+import Sidebar from './components/Sidebar';
 import TitleBar from './components/TitleBar';
-import InfoBar from './components/InfoBar'; // Инфобар снизу
+import InfoBar from './components/InfoBar';
 
 function App() {
   const [selectedTab, setSelectedTab] = useState('posts');
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false); // Состояние для раскрытия/сворачивания
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   // Состояние для постов
   const [posts, setPosts] = useState([]);
@@ -92,11 +84,6 @@ function App() {
   const [editPropertyValueText, setEditPropertyValueText] = useState('');
 
   const editButtonRef = useRef(null);
-
-  // Константы для цветов
-  const ICON_COLOR_INACTIVE = '#8e8e8e'; // Цвет иконок в неактивном состоянии
-  const ICON_COLOR_ACTIVE = '#3b3b3b';   // Цвет иконок в активном состоянии
-  const ICON_COLOR_HOVER = '#1a1a1a';    // Цвет иконок при наведении
 
   useEffect(() => {
     fetchPosts();
@@ -169,8 +156,8 @@ function App() {
 
     const post = {
       groupId: newPostGroupId || null,
-      channelId: 1, // Заглушка
-      userId: 1, // Заглушка
+      channelId: 1,
+      userId: 1,
       title: newPostTitle,
       text: newPostText,
       isPublished: false,
@@ -499,140 +486,39 @@ function App() {
     setEditPropertyValueText('');
   };
 
-  // Вкладки для бокового меню
-  const tabs = [
-    { id: 'posts', label: 'Посты', icon: <ArticleIcon /> },
-    { id: 'templates', label: 'Шаблоны', icon: <DescriptionIcon /> },
-    { id: 'groups', label: 'Группы', icon: <GroupIcon /> },
-    { id: 'properties', label: 'Свойства', icon: <SettingsIcon /> },
-  ];
-
-  // Фиксированные размеры боковой панели
-  const SIDEBAR_CLOSED_WIDTH = 56; // Ширина в закрытом состоянии (стандарт для иконок Material UI)
-  const SIDEBAR_OPEN_WIDTH = 140; // Ширина в раскрытом состоянии
-  const SIDEBAR_MARGIN = 10; // Минимальный отступ слева для содержимого
-  const TITLE_BAR_HEIGHT = 32; // Высота титульной панели
+  const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
 
   return (
-    <ThemeProvider theme={theme}> {/* Оборачиваем всё в ThemeProvider */}
-      <Box
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      {/* Титульная панель */}
+      <TitleBar />
+
+      {/* Главный контейнер */}
+      <Box sx={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
+        
+        {/* Боковая панель */}
+        <Sidebar
+          isOpen={isSidebarOpen}
+          toggleSidebar={toggleSidebar}
+          selectedTab={selectedTab}
+          setSelectedTab={setSelectedTab}
+        />
+
+        {/* Основной контент */}
+        <Box
+        component="main"
         sx={{
-          display: 'flex',
+          flexGrow: 1,
+          p: 3,
+          overflowY: 'auto',
           height: '100vh',
-          width: '100vw',
-          margin: 0,
-          padding: 0,
-          overflow: 'hidden', // Убираем скролл на уровне корневого контейнера
+          paddingBottom: '40px', // Отступ для InfoBar
+          marginLeft: isSidebarOpen ? '125px' : '56px', // Учитываем ширину Sidebar
+          marginTop: '32px', // Учитываем высоту TitleBar
+          transition: 'margin-left 0.2s ease-in-out', // Добавляем плавный переход
         }}
       >
-        {/* Кастомная титульная панель */}
-        <TitleBar />
-
-        {/* Боковая панель (фиксированная) */}
-        <Box
-          sx={{
-            width: isSidebarOpen ? SIDEBAR_OPEN_WIDTH : SIDEBAR_CLOSED_WIDTH,
-            bgcolor: '#f5f5f5',
-            borderRight: '1px solid #ddd',
-            height: `calc(100vh - ${TITLE_BAR_HEIGHT}px)`, // Учитываем высоту титульной панели
-            overflow: 'auto', // Скролл только внутри боковой панели
-            transition: 'width 0.3s', // Плавное переключение ширины
-            ml: 0,
-            p: 0,
-            mt: `${TITLE_BAR_HEIGHT}px`, // Сдвигаем вниз на высоту титульной панели
-            position: 'fixed', // Фиксируем панель
-            zIndex: 1000, // Убеждаемся, что панель поверх содержимого
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'space-between', // Для размещения кнопки внизу
-          }}
-        >
-          {/* Меню */}
-          <List>
-            {tabs.map((tab) => (
-              <ListItem
-                key={tab.id}
-                button
-                onClick={() => setSelectedTab(tab.id)}
-                sx={{
-                  p: 1,
-                  minHeight: 48,
-                  justifyContent: isSidebarOpen ? 'initial' : 'center',
-                  cursor: 'pointer', // Курсор в виде руки для всего элемента
-                  '&:hover': {
-                    bgcolor: 'transparent', // Убираем изменение фона
-                    '& .MuiListItemIcon-root, & .MuiListItemText-primary': {
-                      color: ICON_COLOR_HOVER, // Единое изменение цвета для иконки и текста
-                    },
-                  },
-                }}
-              >
-                <ListItemIcon
-                  sx={{
-                    minWidth: 0,
-                    mr: isSidebarOpen ? 1 : 0,
-                    color: selectedTab === tab.id ? ICON_COLOR_ACTIVE : ICON_COLOR_INACTIVE, // Цвет иконок
-                  }}
-                >
-                  {tab.icon}
-                </ListItemIcon>
-                {isSidebarOpen && (
-                  <ListItemText
-                    primary={tab.label}
-                    sx={{
-                      color: selectedTab === tab.id ? ICON_COLOR_ACTIVE : ICON_COLOR_INACTIVE, // Цвет текста
-                    }}
-                  />
-                )}
-              </ListItem>
-            ))}
-          </List>
-
-          {/* Кнопка для раскрытия/сворачивания внизу */}
-          <Box sx={{ p: 1 }}>
-            <ListItem
-              button
-              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-              sx={{
-                p: 1,
-                minHeight: 80,
-                justifyContent: isSidebarOpen ? 'initial' : 'center',
-                cursor: 'pointer', // Курсор в виде руки для нижней иконки
-                '&:hover': {
-                  bgcolor: 'transparent', // Убираем изменение фона
-                  '& .MuiListItemIcon-root': {
-                    color: ICON_COLOR_HOVER, // Изменение цвета иконки при наведении
-                  },
-                },
-              }}
-              disableRipple // Убираем эффект "ripple"
-            >
-              <ListItemIcon
-                sx={{
-                  minWidth: 0,
-                  mr: isSidebarOpen ? 1 : 0,
-                  color: ICON_COLOR_INACTIVE, // Базовый цвет иконки
-                }}
-              >
-                {isSidebarOpen ? <KeyboardArrowLeftIcon /> : <KeyboardArrowRightIcon />}
-              </ListItemIcon>
-            </ListItem>
-          </Box>
-        </Box>
-
-        {/* Основная область с фиксированным отступом */}
-        <Box
-          sx={{
-            flexGrow: 1,
-            p: 3,
-            overflow: 'auto', // Скролл только внутри основной области
-            ml: SIDEBAR_MARGIN, // Фиксированный минимальный отступ слева
-            transition: 'margin-left 0.3s', // Плавное смещение при раскрытии
-            marginLeft: isSidebarOpen ? `${SIDEBAR_OPEN_WIDTH + SIDEBAR_MARGIN}px` : `${SIDEBAR_CLOSED_WIDTH + SIDEBAR_MARGIN}px`, // Динамическое смещение
-            marginTop: `${TITLE_BAR_HEIGHT}px`, // Сдвиг вниз на высоту титульной панели
-            maxHeight: `calc(100vh - ${TITLE_BAR_HEIGHT}px)`, // Ограничиваем высоту содержимого
-          }}
-        >
           {/* Вкладка Посты */}
           {selectedTab === 'posts' && (
             <div>
@@ -696,10 +582,14 @@ function App() {
                     multiple
                     value={selectedProperties}
                     onChange={(e) => setSelectedProperties(e.target.value)}
-                    renderValue={(selected) => selected.map(id => {
-                      const value = propertyValues.find(v => v.id === id);
-                      return value ? `${value.property_name}: ${value.property_value}` : '';
-                    }).join(', ')}
+                    renderValue={(selected) =>
+                      selected
+                        .map((id) => {
+                          const value = propertyValues.find((v) => v.id === id);
+                          return value ? `${value.property_name}: ${value.property_value}` : '';
+                        })
+                        .join(', ')
+                    }
                   >
                     {propertyValues.map((value) => (
                       <MenuItem key={value.id} value={value.id}>
@@ -745,7 +635,9 @@ function App() {
                       <TableCell>{post.title || '-'}</TableCell>
                       <TableCell>{post.text}</TableCell>
                       <TableCell>
-                        {post.group_id ? postGroups.find(g => g.id === post.group_id)?.title || 'Неизвестно' : '-'}
+                        {post.group_id
+                          ? postGroups.find((g) => g.id === post.group_id)?.title || 'Неизвестно'
+                          : '-'}
                       </TableCell>
                       <TableCell>{post.is_published ? 'Да' : 'Нет'}</TableCell>
                       <TableCell>{post.published_at || '-'}</TableCell>
@@ -1045,7 +937,9 @@ function App() {
                 <Grid item xs={6}>
                   {selectedPropertyGroupId && (
                     <Box>
-                      <Typography variant="h6">Свойства группы: {propertyGroups.find(g => g.id === selectedPropertyGroupId)?.group_name}</Typography>
+                      <Typography variant="h6">
+                        Свойства группы: {propertyGroups.find((g) => g.id === selectedPropertyGroupId)?.group_name}
+                      </Typography>
                       <div style={{ marginBottom: '20px' }}>
                         <TextField
                           label="Название свойства"
@@ -1124,223 +1018,209 @@ function App() {
             </div>
           )}
         </Box>
-
-        {/* Диалог редактирования поста */}
-        <Dialog
-          open={!!editPost}
-          onClose={handleDialogClose}
-          disableRestoreFocus
-        >
-          <DialogTitle>Редактировать пост</DialogTitle>
-          <DialogContent>
-            <TextField
-              label="Заголовок поста"
-              value={editTitle}
-              onChange={(e) => setEditTitle(e.target.value)}
-              fullWidth
-              margin="normal"
-            />
-            <TextField
-              label="Текст поста"
-              value={editText}
-              onChange={(e) => setEditText(e.target.value)}
-              fullWidth
-              margin="normal"
-              multiline
-              rows={5}
-              autoFocus
-            />
-            <FormControl fullWidth margin="normal">
-              <InputLabel>Выберите группу</InputLabel>
-              <Select
-                value={editPost?.group_id || ''}
-                onChange={(e) => {
-                  setEditPost({ ...editPost, group_id: e.target.value || null });
-                }}
-              >
-                <MenuItem value="">Без группы</MenuItem>
-                {postGroups.map((group) => (
-                  <MenuItem key={group.id} value={group.id}>
-                    {group.title}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-            <FormControl fullWidth margin="normal">
-              <InputLabel>Выберите свойства</InputLabel>
-              <Select
-                multiple
-                value={selectedProperties}
-                onChange={(e) => setSelectedProperties(e.target.value)}
-                renderValue={(selected) => selected.map(id => {
-                  const value = propertyValues.find(v => v.id === id);
-                  return value ? `${value.property_name}: ${value.property_value}` : '';
-                }).join(', ')}
-              >
-                {propertyValues.map((value) => (
-                  <MenuItem key={value.id} value={value.id}>
-                    <Checkbox checked={selectedProperties.indexOf(value.id) > -1} />
-                    {`${value.property_name}: ${value.property_value} (${value.value_type})`}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={handleDialogClose}>Отмена</Button>
-            <Button onClick={handleSaveEdit} variant="contained">
-              Сохранить
-            </Button>
-          </DialogActions>
-        </Dialog>
-
-        {/* Диалог редактирования шаблона */}
-        <Dialog
-          open={!!editTemplate}
-          onClose={() => setEditTemplate(null)}
-          disableRestoreFocus
-        >
-          <DialogTitle>Редактировать шаблон</DialogTitle>
-          <DialogContent>
-            <TextField
-              label="Название шаблона"
-              value={editTemplateName}
-              onChange={(e) => setEditTemplateName(e.target.value)}
-              fullWidth
-              margin="normal"
-            />
-            <TextField
-              label="Текст шаблона"
-              value={editTemplateText}
-              onChange={(e) => setEditTemplateText(e.target.value)}
-              fullWidth
-              margin="normal"
-              multiline
-              rows={4}
-            />
-            <TextField
-              label="Описание шаблона"
-              value={editTemplateDescription}
-              onChange={(e) => setEditTemplateDescription(e.target.value)}
-              fullWidth
-              margin="normal"
-            />
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setEditTemplate(null)}>Отмена</Button>
-            <Button onClick={handleSaveEditTemplate} variant="contained">
-              Сохранить
-            </Button>
-          </DialogActions>
-        </Dialog>
-
-        {/* Диалог редактирования группы */}
-        <Dialog
-          open={!!editGroup}
-          onClose={handleGroupDialogClose}
-          disableRestoreFocus
-        >
-          <DialogTitle>Редактировать группу</DialogTitle>
-          <DialogContent>
-            <TextField
-              label="Название группы"
-              value={editGroupTitle}
-              onChange={(e) => setEditGroupTitle(e.target.value)}
-              fullWidth
-              margin="normal"
-            />
-            <TextField
-              label="Описание группы"
-              value={editGroupDescription}
-              onChange={(e) => setEditGroupDescription(e.target.value)}
-              fullWidth
-              margin="normal"
-              multiline
-              rows={2}
-            />
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={handleGroupDialogClose}>Отмена</Button>
-            <Button onClick={handleSaveEditPostGroup} variant="contained">
-              Сохранить
-            </Button>
-          </DialogActions>
-        </Dialog>
-
-        {/* Диалог редактирования группы свойств */}
-        <Dialog
-          open={!!editPropertyGroup}
-          onClose={handlePropertyGroupDialogClose}
-          disableRestoreFocus
-        >
-          <DialogTitle>Редактировать группу свойств</DialogTitle>
-          <DialogContent>
-            <TextField
-              label="Название группы свойств"
-              value={editPropertyGroupName}
-              onChange={(e) => setEditPropertyGroupName(e.target.value)}
-              fullWidth
-              margin="normal"
-            />
-            <TextField
-              label="Описание группы свойств"
-              value={editPropertyGroupDescription}
-              onChange={(e) => setEditPropertyGroupDescription(e.target.value)}
-              fullWidth
-              margin="normal"
-              multiline
-              rows={2}
-            />
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={handlePropertyGroupDialogClose}>Отмена</Button>
-            <Button onClick={handleSaveEditPropertyGroup} variant="contained">
-              Сохранить
-            </Button>
-          </DialogActions>
-        </Dialog>
-
-        {/* Диалог редактирования значения свойства */}
-        <Dialog
-          open={!!editPropertyValue}
-          onClose={handlePropertyValueDialogClose}
-          disableRestoreFocus
-        >
-          <DialogTitle>Редактировать значение свойства</DialogTitle>
-          <DialogContent>
-            <TextField
-              label="Название свойства"
-              value={editPropertyName}
-              onChange={(e) => setEditPropertyName(e.target.value)}
-              fullWidth
-              margin="normal"
-            />
-            <FormControl fullWidth margin="normal">
-              <InputLabel>Тип значения</InputLabel>
-              <Select value={editValueType} onChange={(e) => setEditValueType(e.target.value)}>
-                <MenuItem value="text">Текст</MenuItem>
-                <MenuItem value="number">Число</MenuItem>
-                <MenuItem value="date">Дата</MenuItem>
-                <MenuItem value="boolean">Логическое</MenuItem>
-              </Select>
-            </FormControl>
-            <TextField
-              label="Значение свойства"
-              value={editPropertyValueText}
-              onChange={(e) => setEditPropertyValueText(e.target.value)}
-              fullWidth
-              margin="normal"
-            />
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={handlePropertyValueDialogClose}>Отмена</Button>
-            <Button onClick={handleSaveEditPropertyValue} variant="contained">
-              Сохранить
-            </Button>
-          </DialogActions>
-        </Dialog>
       </Box>
+
+      {/* Информационный бар */}
       <InfoBar status="Подключено" postCount={posts.length} />
+
+      {/* Диалог редактирования поста */}
+      <Dialog open={!!editPost} onClose={handleDialogClose} disableRestoreFocus>
+        <DialogTitle>Редактировать пост</DialogTitle>
+        <DialogContent>
+          <TextField
+            label="Заголовок поста"
+            value={editTitle}
+            onChange={(e) => setEditTitle(e.target.value)}
+            fullWidth
+            margin="normal"
+          />
+          <TextField
+            label="Текст поста"
+            value={editText}
+            onChange={(e) => setEditText(e.target.value)}
+            fullWidth
+            margin="normal"
+            multiline
+            rows={5}
+            autoFocus
+          />
+          <FormControl fullWidth margin="normal">
+            <InputLabel>Выберите группу</InputLabel>
+            <Select
+              value={editPost?.group_id || ''}
+              onChange={(e) => {
+                setEditPost({ ...editPost, group_id: e.target.value || null });
+              }}
+            >
+              <MenuItem value="">Без группы</MenuItem>
+              {postGroups.map((group) => (
+                <MenuItem key={group.id} value={group.id}>
+                  {group.title}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+          <FormControl fullWidth margin="normal">
+            <InputLabel>Выберите свойства</InputLabel>
+            <Select
+              multiple
+              value={selectedProperties}
+              onChange={(e) => setSelectedProperties(e.target.value)}
+              renderValue={(selected) =>
+                selected
+                  .map((id) => {
+                    const value = propertyValues.find((v) => v.id === id);
+                    return value ? `${value.property_name}: ${value.property_value}` : '';
+                  })
+                  .join(', ')
+              }
+            >
+              {propertyValues.map((value) => (
+                <MenuItem key={value.id} value={value.id}>
+                  <Checkbox checked={selectedProperties.indexOf(value.id) > -1} />
+                  {`${value.property_name}: ${value.property_value} (${value.value_type})`}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleDialogClose}>Отмена</Button>
+          <Button onClick={handleSaveEdit} variant="contained">
+            Сохранить
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Диалог редактирования шаблона */}
+      <Dialog open={!!editTemplate} onClose={() => setEditTemplate(null)} disableRestoreFocus>
+        <DialogTitle>Редактировать шаблон</DialogTitle>
+        <DialogContent>
+          <TextField
+            label="Название шаблона"
+            value={editTemplateName}
+            onChange={(e) => setEditTemplateName(e.target.value)}
+            fullWidth
+            margin="normal"
+          />
+          <TextField
+            label="Текст шаблона"
+            value={editTemplateText}
+            onChange={(e) => setEditTemplateText(e.target.value)}
+            fullWidth
+            margin="normal"
+            multiline
+            rows={4}
+          />
+          <TextField
+            label="Описание шаблона"
+            value={editTemplateDescription}
+            onChange={(e) => setEditTemplateDescription(e.target.value)}
+            fullWidth
+            margin="normal"
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setEditTemplate(null)}>Отмена</Button>
+          <Button onClick={handleSaveEditTemplate} variant="contained">
+            Сохранить
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Диалог редактирования группы */}
+      <Dialog open={!!editGroup} onClose={handleGroupDialogClose} disableRestoreFocus>
+        <DialogTitle>Редактировать группу</DialogTitle>
+        <DialogContent>
+          <TextField
+            label="Название группы"
+            value={editGroupTitle}
+            onChange={(e) => setEditGroupTitle(e.target.value)}
+            fullWidth
+            margin="normal"
+          />
+          <TextField
+            label="Описание группы"
+            value={editGroupDescription}
+            onChange={(e) => setEditGroupDescription(e.target.value)}
+            fullWidth
+            margin="normal"
+            multiline
+            rows={2}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleGroupDialogClose}>Отмена</Button>
+          <Button onClick={handleSaveEditPostGroup} variant="contained">
+            Сохранить
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Диалог редактирования группы свойств */}
+      <Dialog open={!!editPropertyGroup} onClose={handlePropertyGroupDialogClose} disableRestoreFocus>
+        <DialogTitle>Редактировать группу свойств</DialogTitle>
+        <DialogContent>
+          <TextField
+            label="Название группы свойств"
+            value={editPropertyGroupName}
+            onChange={(e) => setEditPropertyGroupName(e.target.value)}
+            fullWidth
+            margin="normal"
+          />
+          <TextField
+            label="Описание группы свойств"
+            value={editPropertyGroupDescription}
+            onChange={(e) => setEditPropertyGroupDescription(e.target.value)}
+            fullWidth
+            margin="normal"
+            multiline
+            rows={2}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handlePropertyGroupDialogClose}>Отмена</Button>
+          <Button onClick={handleSaveEditPropertyGroup} variant="contained">
+            Сохранить
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Диалог редактирования значения свойства */}
+      <Dialog open={!!editPropertyValue} onClose={handlePropertyValueDialogClose} disableRestoreFocus>
+        <DialogTitle>Редактировать значение свойства</DialogTitle>
+        <DialogContent>
+          <TextField
+            label="Название свойства"
+            value={editPropertyName}
+            onChange={(e) => setEditPropertyName(e.target.value)}
+            fullWidth
+            margin="normal"
+          />
+          <FormControl fullWidth margin="normal">
+            <InputLabel>Тип значения</InputLabel>
+            <Select value={editValueType} onChange={(e) => setEditValueType(e.target.value)}>
+              <MenuItem value="text">Текст</MenuItem>
+              <MenuItem value="number">Число</MenuItem>
+              <MenuItem value="date">Дата</MenuItem>
+              <MenuItem value="boolean">Логическое</MenuItem>
+            </Select>
+          </FormControl>
+          <TextField
+            label="Значение свойства"
+            value={editPropertyValueText}
+            onChange={(e) => setEditPropertyValueText(e.target.value)}
+            fullWidth
+            margin="normal"
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handlePropertyValueDialogClose}>Отмена</Button>
+          <Button onClick={handleSaveEditPropertyValue} variant="contained">
+            Сохранить
+          </Button>
+        </DialogActions>
+      </Dialog>
     </ThemeProvider>
   );
 }
