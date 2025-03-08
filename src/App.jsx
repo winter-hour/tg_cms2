@@ -595,7 +595,7 @@ function App() {
               onClick={() => setIsSidebarOpen(!isSidebarOpen)}
               sx={{
                 p: 1,
-                minHeight: 48,
+                minHeight: 80,
                 justifyContent: isSidebarOpen ? 'initial' : 'center',
                 cursor: 'pointer', // Курсор в виде руки для нижней иконки
                 '&:hover': {

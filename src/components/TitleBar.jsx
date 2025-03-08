@@ -1,3 +1,4 @@
+// src/components/TitleBar.jsx
 import React from 'react';
 import { Box, Typography, IconButton } from '@mui/material';
 import {
@@ -22,20 +23,20 @@ const TitleBar = () => {
   return (
     <Box
       sx={{
-        height: 32, // Высота панели
-        backgroundColor: '#222222', // Цвет фона (можно настроить под тему)
-        color: '#fff',
+        height: 32,
+        backgroundColor: '#222222',
+        color: '#b3b3b3',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
         padding: '0 8px',
-        userSelect: 'none', // Отключаем выделение текста
-        '-webkit-app-region': 'drag', // Делаем панель перетаскиваемой
+        userSelect: 'none',
+        '-webkit-app-region': 'drag',
         position: 'fixed',
         top: 0,
         left: 0,
         right: 0,
-        zIndex: 1100, // Выше боковой панели (zIndex: 1000)
+        zIndex: 1100,
       }}
     >
       {/* Название приложения */}
@@ -49,9 +50,13 @@ const TitleBar = () => {
           size="small"
           onClick={handleMinimize}
           sx={{
-            color: '#fff',
-            '&:hover': { backgroundColor: 'rgba(255, 255, 255, 0.2)' },
-            '-webkit-app-region': 'no-drag', // Отключаем перетаскивание для кнопок
+            color: '#b3b3b3',
+            '&:hover': {
+              backgroundColor: 'rgba(255, 255, 255, 0.2)',
+              borderRadius: 0, // Прямоугольный фон при наведении
+            },
+            '-webkit-app-region': 'no-drag',
+            borderRadius: 0, // Убираем скругление по умолчанию
           }}
         >
           <MinimizeIcon fontSize="small" />
@@ -60,9 +65,13 @@ const TitleBar = () => {
           size="small"
           onClick={handleMaximize}
           sx={{
-            color: '#fff',
-            '&:hover': { backgroundColor: 'rgba(255, 255, 255, 0.2)' },
+            color: '#b3b3b3',
+            '&:hover': {
+              backgroundColor: 'rgba(255, 255, 255, 0.2)',
+              borderRadius: 0, // Прямоугольный фон при наведении
+            },
             '-webkit-app-region': 'no-drag',
+            borderRadius: 0, // Убираем скругление по умолчанию
           }}
         >
           <MaximizeIcon fontSize="small" />
@@ -71,9 +80,13 @@ const TitleBar = () => {
           size="small"
           onClick={handleClose}
           sx={{
-            color: '#fff',
-            '&:hover': { backgroundColor: 'rgba(255, 0, 0, 0.6)' }, // Красный при наведении для закрытия
+            color: '#b3b3b3',
+            '&:hover': {
+              backgroundColor: 'rgba(255, 0, 0, 0.6)', // Красный для закрытия
+              borderRadius: 0, // Прямоугольный фон при наведении
+            },
             '-webkit-app-region': 'no-drag',
+            borderRadius: 0, // Убираем скругление по умолчанию
           }}
         >
           <CloseIcon fontSize="small" />

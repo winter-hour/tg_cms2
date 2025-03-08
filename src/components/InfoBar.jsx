@@ -16,7 +16,7 @@ const InfoBar = ({ status, postCount }) => {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between', // Распределяем содержимое
-        padding: '0 16px', // Отступы слева и справа
+        padding: '0 14px', // Отступы слева и справа
         zIndex: 1000, // Чтобы бар был поверх остального контента
       }}
     >
