@@ -36,6 +36,7 @@ import {
 import { ThemeProvider } from '@mui/material/styles'; // Добавляем импорт ThemeProvider
 import theme from './theme'; // Импортируем тему из src/theme.js
 import TitleBar from './components/TitleBar';
+import InfoBar from './components/InfoBar'; // Инфобар снизу
 
 function App() {
   const [selectedTab, setSelectedTab] = useState('posts');
@@ -1339,6 +1340,7 @@ function App() {
           </DialogActions>
         </Dialog>
       </Box>
+      <InfoBar status="Подключено" postCount={posts.length} />
     </ThemeProvider>
   );
 }
