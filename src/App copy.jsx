@@ -32,7 +32,6 @@ import InfoBar from './components/InfoBar';
 
 function App() {
   const [selectedTab, setSelectedTab] = useState('posts');
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   // Состояние для постов
   const [posts, setPosts] = useState([]);
@@ -391,7 +390,11 @@ function App() {
     if (!editPropertyGroupName || !editPropertyGroup) return;
 
     try {
-      await window.electronAPI.updatePropertyGroup(editPropertyGroup.id, editPropertyGroupName, editPropertyGroupDescription);
+      await window.electronAPI.updatePropertyGroup(
+        editPropertyGroup.id,
+        editPropertyGroupName,
+        editPropertyGroupDescription
+      );
       await fetchPropertyGroups();
       setEditPropertyGroup(null);
       setEditPropertyGroupName('');
@@ -416,7 +419,12 @@ function App() {
     if (!newPropertyName || !newPropertyValue) return;
 
     try {
-      await window.electronAPI.addPropertyValue(selectedPropertyGroupId, newPropertyName, newValueType, newPropertyValue);
+      await window.electronAPI.addPropertyValue(
+        selectedPropertyGroupId,
+        newPropertyName,
+        newValueType,
+        newPropertyValue
+      );
       await fetchPropertyValues(selectedPropertyGroupId);
       setNewPropertyName('');
       setNewValueType('text');
@@ -437,7 +445,12 @@ function App() {
     if (!editPropertyName || !editPropertyValueText || !editPropertyValue) return;
 
     try {
-      await window.electronAPI.updatePropertyValue(editPropertyValue.id, editPropertyName, editValueType, editPropertyValueText);
+      await window.electronAPI.updatePropertyValue(
+        editPropertyValue.id,
+        editPropertyName,
+        editValueType,
+        editPropertyValueText
+      );
       await fetchPropertyValues(selectedPropertyGroupId);
       setEditPropertyValue(null);
       setEditPropertyName('');
@@ -486,8 +499,6 @@ function App() {
     setEditPropertyValueText('');
   };
 
-  const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
-
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
@@ -496,29 +507,22 @@ function App() {
 
       {/* Главный контейнер */}
       <Box sx={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
-        
         {/* Боковая панель */}
-        <Sidebar
-          isOpen={isSidebarOpen}
-          toggleSidebar={toggleSidebar}
-          selectedTab={selectedTab}
-          setSelectedTab={setSelectedTab}
-        />
+        <Sidebar selectedTab={selectedTab} setSelectedTab={setSelectedTab} />
 
         {/* Основной контент */}
         <Box
-        component="main"
-        sx={{
-          flexGrow: 1,
-          p: 3,
-          overflowY: 'auto',
-          height: '100vh',
-          paddingBottom: '40px', // Отступ для InfoBar
-          marginLeft: isSidebarOpen ? '125px' : '56px', // Учитываем ширину Sidebar
-          marginTop: '32px', // Учитываем высоту TitleBar
-          transition: 'margin-left 0.2s ease-in-out', // Добавляем плавный переход
-        }}
-      >
+          component="main"
+          sx={{
+            flexGrow: 1,
+            p: 3,
+            overflowY: 'auto',
+            height: '100vh',
+            paddingBottom: '40px', // Отступ для InfoBar
+            marginLeft: '56px', // Фиксированная ширина Sidebar
+            marginTop: '32px', // Учитываем высоту TitleBar
+          }}
+        >
           {/* Вкладка Посты */}
           {selectedTab === 'posts' && (
             <div>
@@ -562,7 +566,7 @@ function App() {
                     value={selectedTemplate}
                     onChange={(e) => {
                       setSelectedTemplate(e.target.value);
-                      const template = templates.find(t => t.id === e.target.value);
+                      const template = templates.find((t) => t.id === e.target.value);
                       if (template) {
                         handleApplyTemplate(template.template_text);
                       }
@@ -938,7 +942,8 @@ function App() {
                   {selectedPropertyGroupId && (
                     <Box>
                       <Typography variant="h6">
-                        Свойства группы: {propertyGroups.find((g) => g.id === selectedPropertyGroupId)?.group_name}
+                        Свойства группы:{' '}
+                        {propertyGroups.find((g) => g.id === selectedPropertyGroupId)?.group_name}
                       </Typography>
                       <div style={{ marginBottom: '20px' }}>
                         <TextField
