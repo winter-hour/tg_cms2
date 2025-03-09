@@ -4,7 +4,7 @@ import { createTheme } from '@mui/material/styles';
 const theme = createTheme({
   palette: {
     primary: {
-      main: '#1976d2',
+      main: '#1967d2',
     },
     secondary: {
       main: '#757575',
@@ -31,7 +31,7 @@ const theme = createTheme({
       styleOverrides: {
         root: {
           padding: '4px 8px',
-          borderRadius: 2,
+          borderRadius: 4,
         },
       },
     },
